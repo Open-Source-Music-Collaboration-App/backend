@@ -50,4 +50,8 @@ app.get('/api/me', (req, res) => {
     }
 });
 
+
+const userProjectsRouter = require("./routes/userProjects");
+app.use("/api/user_projects", userProjectsRouter);
+
 module.exports = app
