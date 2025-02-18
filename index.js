@@ -6,11 +6,11 @@ const sequelize = require("./config/database");
 
 async function startServer() {
   try {
-    // await sequelize.authenticate();
-    // console.log("Connected to PostgreSQL");
+    await sequelize.authenticate();
+    console.log("Connected to PostgreSQL");
 
-    // await sequelize.sync({ alter: true }); 
-    // console.log("Database synced");
+    await sequelize.sync({ alter: true }); 
+    console.log("Database synced");
 
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (err) {

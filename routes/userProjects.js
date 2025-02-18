@@ -15,7 +15,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get all projects for a user
+// Get all projects for a user full url: http://localhost:3333/api/user_projects/:userId
 router.get("/:userId", async (req, res) => {
   try {
     const projects = await UserProject.findAll({
