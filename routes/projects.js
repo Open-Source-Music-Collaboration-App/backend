@@ -25,7 +25,7 @@ projectsRouter.get("/", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('Project')
-      .select('*')
+      .select('*, User(name)')
       .eq('user_id', owner_id)
       .order('updated_at', { ascending: false });
     res.json(data);
@@ -40,7 +40,7 @@ projectsRouter.get("/:projectId", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('Project')
-      .select('*')
+      .select('*, User(name)')
       .eq('id', projectId);
 
     if (!data) {
