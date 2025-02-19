@@ -3,7 +3,7 @@ const cors = require('cors');
 const session = require('express-session');
 const passport = require('./utils/passport');
 const authRouter = require('./routes/authentication')
-const supabase = require('./config/supabase')
+const projectsRouter = require("./routes/projects");
 
 const app = express();
 
@@ -54,18 +54,6 @@ app.get('/api/me', (req, res) => {
     }
 });
 
-const checkDBConnection = async () => {
-    const { data, error } = await supabase.from('Project').select();
-    if (error) {
-        console.log('Error', error);
-    } else {
-        console.log(data);
-    }
-
-}
-checkDBConnection();
-
-const projectsRouter = require("./routes/projects");
 app.use("/api/projects", projectsRouter);
 
 module.exports = app

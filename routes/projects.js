@@ -18,7 +18,7 @@ projectsRouter.post("/", async (req, res) => {
   }
 });
 
-// Get all projects for a user full url: http://localhost:3333/api/user_projects/:userId
+// Get all projects for a user
 projectsRouter.get("/", async (req, res) => {
   const { owner_id } = req.query;
  
