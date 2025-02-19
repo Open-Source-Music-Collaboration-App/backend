@@ -28,6 +28,8 @@ projectsRouter.get("/", async (req, res) => {
       .select('*')
       .eq('user_id', owner_id)
       .order('updated_at', { ascending: false });
+
+    // console.log(data);
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch projects", details: err.message });
@@ -46,7 +48,7 @@ projectsRouter.get("/:projectId", async (req, res) => {
     if (!data) {
       return res.status(404).json({ error: "Project not found" });
     }
-
+    
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch project", details: err.message });
