@@ -1,11 +1,26 @@
 const authRouter = require('express').Router()
 const passport = require('passport');
+const createOrGetUser = require("../utils/createOrGetUser");
 
 authRouter.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 
 authRouter.get('/github/callback', 
     passport.authenticate('github', { failureRedirect: '/' }),
-    (req, res) => {
+    async (req, res) => {
+        if (!req.user) {
+          return res.status(401).json({ message: "Authentication failed" });
+        }
+        const { id, username, emails } = req.user;
+        const email = emails && emails.length > 0 ? emails[0].value : null;
+
+        console.log("GitHub User:", { id, username, email });
+
+        const result = await createOrGetUser(id.toString(), username || email || "GitHub User");
+
+        if (result.error) {
+          return res.status(500).json({ message: "Failed to process user", error: result.error });
+        }
+
         res.redirect('http://localhost:5173/dashboard'); // Redirect frontend after login
     }
 );
