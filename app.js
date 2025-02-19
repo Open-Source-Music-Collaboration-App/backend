@@ -3,8 +3,11 @@ const cors = require('cors');
 const session = require('express-session');
 const passport = require('./utils/passport');
 const authRouter = require('./routes/authentication')
+const { createClient }= require('@supabase/supabase-js');
 
 const app = express();
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
 
 // Enable CORS to allow frontend requests
 app.use(cors({
@@ -14,7 +17,7 @@ app.use(cors({
 
 // Session configuration
 app.use(session({
-    secret: process.env.SESSION_SECRET, 
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -50,8 +53,18 @@ app.get('/api/me', (req, res) => {
     }
 });
 
+const checkDBConnection = async () => {
+    const { data, error } = await supabase.from('Project').select();
+    if (error) {
+        console.log('Error', error);
+    } else {
+        console.log(data);
+    }
 
-const userProjectsRouter = require("./routes/userProjects");
-app.use("/api/user_projects", userProjectsRouter);
+}
+checkDBConnection();
+
+// const userProjectsRouter = require("./routes/userProjects");
+// app.use("/api/user_projects", userProjectsRouter);
 
 module.exports = app
