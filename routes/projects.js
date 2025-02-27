@@ -6,12 +6,30 @@ const supabase = require('../config/supabase')
 projectsRouter.post("/", async (req, res) => {
   try {
     const { userId, title, hashtags } = req.body;
-    console.log(req.body);
+    console.log("Received request body:", req.body);
+    
+    if (!userId) {
+      return res.status(400).json({ error: "Missing required userId" });
+    }
+    
+    // Process hashtags: if empty string or null, use empty array
+    const processedHashtags = hashtags ? 
+      (typeof hashtags === 'string' ? 
+        (hashtags.trim() === '' ? [] : hashtags.split(',').map(tag => tag.trim())) 
+        : hashtags) 
+      : [];
+    
     const { data, error } = await supabase
       .from('Project')
-      .insert({ title: title, user_id: userId, hashtags: hashtags })
+      .insert({ title: title, user_id: userId, hashtags: processedHashtags })
       .select();
-
+    
+    if (error) {
+      console.error("Supabase error:", error);
+      return res.status(500).json({ error: "Database error", details: error.message });
+    }
+    
+    console.log("Created project:", data);
     res.status(201).json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to create project", details: err.message });
