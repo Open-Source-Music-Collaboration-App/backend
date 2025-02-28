@@ -1,6 +1,9 @@
 const express = require("express");
 const projectsRouter = express.Router();
 const supabase = require('../config/supabase')
+const { simpleGit } = require('simple-git')
+
+const git = simpleGit("./tmp/repositories")
 
 // Create a new project
 projectsRouter.post("/", async (req, res) => {
@@ -30,6 +33,8 @@ projectsRouter.post("/", async (req, res) => {
     }
     
     console.log("Created project:", data);
+    await git.init([`${userId}-${title}`]);
+
     res.status(201).json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to create project", details: err.message });
