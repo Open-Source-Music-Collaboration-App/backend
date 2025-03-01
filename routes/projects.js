@@ -25,7 +25,9 @@ projectsRouter.post("/", async (req, res) => {
     const { data, error } = await supabase
       .from('Project')
       .insert({ title: title, user_id: userId, hashtags: processedHashtags })
-      .select();
+      .select()
+      .limit(1)
+      .single();
     
     if (error) {
       console.error("Supabase error:", error);
@@ -33,7 +35,7 @@ projectsRouter.post("/", async (req, res) => {
     }
     
     console.log("Created project:", data);
-    await git.init([`${userId}-${title}`]);
+    await git.init([`${data.id}-${data.title}`]);
 
     res.status(201).json(data);
   } catch (err) {
