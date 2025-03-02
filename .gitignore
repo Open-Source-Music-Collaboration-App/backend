@@ -3,3 +3,5 @@ node_modules
 requests
 .oldenv
 utils/repo/repositories
+utils/repo/repository
+uploads/*
