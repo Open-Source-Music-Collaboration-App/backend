@@ -3,15 +3,13 @@ const busboy = require("busboy");
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
+const { UPLOAD_PATH } = require("../config/init")
 
 const uploadRouter = express.Router();
 
 uploadRouter.post("/", (req, res) => {
   // Call busboy() as a function:
   const bb = busboy({ headers: req.headers });
-
-  fs.rmSync(path.join(__dirname, "../uploads"), { recursive: true, force: true });
-  fs.mkdirSync(path.join(__dirname, "../uploads"), { recursive: true });
 
   let files = [];
   let jsonData = {};
@@ -35,16 +33,16 @@ uploadRouter.post("/", (req, res) => {
       const fileBuffer = Buffer.concat(chunks);
 
       // Write the file **synchronously** to disk
-      const savePath = path.join(__dirname, "../uploads", filename);
+      const savePath = path.join(UPLOAD_PATH, filename);
       fs.writeFileSync(savePath, fileBuffer);
 
       files.push({ fieldname, filename, encoding, mimeType, savePath });
-      
+
     });
   });
 
   bb.on("field", (fieldname, value) => {
-    
+
 
     // If you're sending jsonData as a single blob field:
     if (fieldname === "jsonData") {
@@ -69,9 +67,9 @@ uploadRouter.post("/", (req, res) => {
     });
 
     //read blob file in uploads folder and parse into userId, projectId, commitMessage
-    const blobFilePath = path.join(__dirname, "../uploads", "metadata.json");
+    const blobFilePath = path.join(UPLOAD_PATH, "metadata.json");
     if (fs.existsSync(blobFilePath)) {
-      try{
+      try {
         const blobContent = fs.readFileSync(blobFilePath, "utf8");
         const blobData = JSON.parse(blobContent);
         let { userId, projectId, commitMessage } = blobData;
@@ -80,7 +78,7 @@ uploadRouter.post("/", (req, res) => {
         console.log("Parsed blob data:", { userId, projectId, commitMessage });
         //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
         const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
-        const alsFilePath = path.join(__dirname, "../uploads", `house.als`);
+        const alsFilePath = path.join(UPLOAD_PATH, `house.als`);
 
         const repoPath = path.join(__dirname, `../utils/repo/repository/${userId}/${projectId}`);
         const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
