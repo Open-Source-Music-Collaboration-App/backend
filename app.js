@@ -4,6 +4,7 @@ const session = require('express-session');
 const passport = require('./utils/passport');
 const authRouter = require('./routes/authentication')
 const projectsRouter = require("./routes/projects");
+const uploadRouter = require("./routes/upload");
 
 const app = express();
 
@@ -55,5 +56,7 @@ app.get('/api/me', (req, res) => {
 });
 
 app.use("/api/projects", projectsRouter);
+
+app.use('/api/upload', uploadRouter);
 
 module.exports = app

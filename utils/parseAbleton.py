@@ -208,7 +208,7 @@ def move_bounced_tracks(folder_path, tracks_folder, matched_tracks):
             dest_path = os.path.join(tracks_folder, track["wav_file"])
             shutil.copy(src_path, dest_path)
 
-def main(folder_path):
+def main(folder_path, output_folder=None):
     """Main function to parse the Ableton project and process WAV files."""
     als_file = next((f for f in os.listdir(folder_path) if f.endswith(".als")), None)
     if not als_file:
@@ -235,12 +235,12 @@ def main(folder_path):
     print(f"Expected Tracks: {expected_tracks}, Matched Tracks: {matched_track_count}")
     
     # Clear and repopulate tracks folder
-    tracks_folder = "./tracks"
+    tracks_folder = "./tracks" if not output_folder else os.path.join(output_folder, "tracks")
     clean_tracks_folder(tracks_folder)
     move_bounced_tracks(folder_path, tracks_folder, matched_tracks)
     
     # Save JSON output
-    json_output_path = os.path.join("./", "ableton_project.json")
+    json_output_path = os.path.join("./" if not output_folder else output_folder, "ableton_project.json")
     with open(json_output_path, "w") as json_file:
         json.dump({"project": als_name, "tracks": matched_tracks}, json_file, indent=4)
     
@@ -250,6 +250,7 @@ def main(folder_path):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage: python parseAbleton.py <folder_path>")
+        print("Usage: python parseAbleton.py <folder_path> <optional: output_folder>")
     else:
-        main(sys.argv[1])
+        main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+      
