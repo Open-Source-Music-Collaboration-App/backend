@@ -1,6 +1,6 @@
 const express = require("express");
 const projectsRouter = express.Router();
-const supabase = require('../config/supabase')
+const supabase = require('../services/supabase')
 
 // Create a new project
 projectsRouter.post("/", async (req, res) => {
