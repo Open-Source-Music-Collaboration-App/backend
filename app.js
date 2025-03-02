@@ -5,7 +5,9 @@ const passport = require('./utils/passport');
 const authRouter = require('./routes/authentication')
 const projectsRouter = require("./routes/projects");
 const uploadRouter = require("./routes/upload");
+const { init } = require("./config/init")
 
+init();
 const app = express();
 
 // Enable CORS to allow frontend requests

@@ -1,4 +1,4 @@
-const supabase = require("../config/supabase");
+const supabase = require("../services/supabase");
 
 /**
  * Creates a new user in the database if they don't already exist.
