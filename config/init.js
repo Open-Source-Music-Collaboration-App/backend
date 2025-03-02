@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("node:path");
-const { createGitInstance } = require("../services/git");
+const { initGit } = require("../services/git");
 
 const REPOSITORY_PATH = path.join(".", "repositories");
 const UPLOAD_PATH = path.join(".", "uploads");
@@ -14,7 +14,7 @@ const init = () => {
         fs.mkdirSync(REPOSITORY_PATH, { recursive: true })
     }
 
-    createGitInstance(REPOSITORY_PATH);
+    initGit(REPOSITORY_PATH);
 }
 
 module.exports = {
