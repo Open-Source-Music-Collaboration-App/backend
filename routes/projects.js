@@ -1,6 +1,7 @@
 const express = require("express");
 const projectsRouter = express.Router();
-const supabase = require('../services/supabase')
+const supabase = require('../services/supabase');
+const { getGitInstance } = require("../services/git");
 
 // Create a new project
 projectsRouter.post("/", async (req, res) => {
@@ -22,13 +23,17 @@ projectsRouter.post("/", async (req, res) => {
     const { data, error } = await supabase
       .from('Project')
       .insert({ title: title, user_id: userId, hashtags: processedHashtags })
-      .select();
+      .select()
+      .limit(1)
+      .single();
     
     if (error) {
       console.error("Supabase error:", error);
       return res.status(500).json({ error: "Database error", details: error.message });
     }
     
+    const git = getGitInstance();
+    await git.init([`${data.id}-${data.title}`])
     console.log("Created project:", data);
     res.status(201).json(data);
   } catch (err) {
