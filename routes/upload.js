@@ -3,7 +3,8 @@ const busboy = require("busboy");
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
-const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init")
+const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
+const Git = require("../services/git");
 
 const uploadRouter = express.Router();
 
@@ -84,6 +85,9 @@ uploadRouter.post("/", (req, res) => {
           }
           console.log("Script output:", stdout);
           console.error("Script error output:", stderr);
+
+          const git = new Git(repoPath);
+          git.commitAbletonUpdate(userId, projectId, commitMessage);
         });
 
         res.status(201).json({
@@ -91,7 +95,7 @@ uploadRouter.post("/", (req, res) => {
           files,
           jsonData,
         });
-    
+
 
 
       } catch (err) {
