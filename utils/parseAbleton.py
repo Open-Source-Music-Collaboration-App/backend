@@ -131,7 +131,9 @@ def parse_tracks(root):
               "loop": {
                 "start": event["Loop"]["LoopStart"]["Value"],
                 "end": event["Loop"]["LoopEnd"]["Value"],
-                "on": event["Loop"]["LoopOn"]["Value"]
+                "on": event["Loop"]["LoopOn"]["Value"],
+                "hiddenLoopStart": event["Loop"]["HiddenLoopStart"]["Value"],
+                "hiddenLoopEnd": event["Loop"]["HiddenLoopEnd"]["Value"]
               },
               "notes": notes
             }
