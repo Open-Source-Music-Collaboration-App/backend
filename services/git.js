@@ -6,21 +6,30 @@ class Git {
     }
 
     async createAbletonRepo(userId, songId) {
-        console.log('createAlbetonRepo:', this.git);
-        await this.git.init([`${songId}`])
+        console.log("running createAbletonRepo")
+        try {
+            await this.git.init([`${songId}`])
+            console.log("repo initialized")
+        } catch (e) {
+            console.log("repo init FAILED:", e);
+        }
     }
 
     async commitAbletonUpdate(userId, songId, commitMessage) {
         try {
-            console.log('📂 Current working directory:', this.git);
             console.log('Adding');
             await this.git.add('.')
             console.log('Added');
+        } catch (e) {
+            console.log('git add FAILED', e);
+        }
+        
+        try {
             console.log('Committing');
             await this.git.commit(commitMessage);
             console.log('Committed');
-        } catch (err) {
-            console.log(err);
+        } catch (e) {
+            console.log('git commit FAILED', e);
         }
     }
 
