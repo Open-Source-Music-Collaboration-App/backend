@@ -5,3 +5,5 @@ requests
 utils/repo/repositories
 utils/repo/repository
 uploads/*
+repositories
+uploads/
