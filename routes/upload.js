@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
 const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
-const Git = require("../services/git");
+const { createGitHandler } = require("../services/git");
 
 const uploadRouter = express.Router();
 
@@ -78,7 +78,7 @@ uploadRouter.post("/", (req, res) => {
         const repoPath = path.join(REPOSITORY_PATH, projectId);
         const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
         console.log("Executing command:", command);
-        exec(command, (error, stdout, stderr) => {
+        exec(command, async (error, stdout, stderr) => {
           if (error) {
             console.error("Error executing script:", error);
             return;
@@ -86,7 +86,7 @@ uploadRouter.post("/", (req, res) => {
           console.log("Script output:", stdout);
           console.error("Script error output:", stderr);
 
-          const git = new Git(repoPath);
+          const git = await createGitHandler(repoPath);
           git.commitAbletonUpdate(userId, projectId, commitMessage);
         });
 

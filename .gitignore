@@ -4,6 +4,8 @@ requests
 .oldenv
 utils/repo/repositories
 utils/repo/repository
-uploads/*
+*.wav
+metadata.json
 repositories
 uploads/
+tmp
