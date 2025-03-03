@@ -1,7 +1,7 @@
 const express = require("express");
 const projectsRouter = express.Router();
 const supabase = require('../services/supabase');
-const { getGitInstance } = require("../services/git");
+const git = require("../services/git");
 
 // Create a new project
 projectsRouter.post("/", async (req, res) => {
@@ -32,8 +32,7 @@ projectsRouter.post("/", async (req, res) => {
       return res.status(500).json({ error: "Database error", details: error.message });
     }
     
-    const git = getGitInstance();
-    await git.init([`${data.id}-${data.title}`])
+    await git.createAbletonRepo(data.userId, data.id)
     console.log("Created project:", data);
     res.status(201).json(data);
   } catch (err) {
