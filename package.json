@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --ignore uploads --ignore repositories index.js"
+    "dev": "nodemon --ignore tmp index.js"
   },
   "author": "Sooraj Gupta",
   "license": "ISC",
