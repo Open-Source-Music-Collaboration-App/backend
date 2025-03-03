@@ -74,8 +74,16 @@ uploadRouter.post("/", (req, res) => {
         //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
         const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
         const alsFilePath = path.join(UPLOAD_PATH);
-
         const repoPath = path.join(REPOSITORY_PATH, projectId);
+
+        // copy the als file to the repo path it ends with .als
+        const alsFileName = files.find(file => file.filename.endsWith('.als')).filename;
+        const alsFileSrcPath = path.join(UPLOAD_PATH, alsFileName);
+        const alsFileDestPath = path.join(repoPath, alsFileName);
+        fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
+        console.log("alsFileSrcPath:", alsFileSrcPath);
+        console.log("alsFileDestPath:", alsFileDestPath);
+
         const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
         console.log("Executing command:", command);
         exec(command, async (error, stdout, stderr) => {
@@ -85,6 +93,8 @@ uploadRouter.post("/", (req, res) => {
           }
           console.log("Script output:", stdout);
           console.error("Script error output:", stderr);
+
+
 
           const git = await createGitHandler(repoPath);
           git.commitAbletonUpdate(userId, projectId, commitMessage);

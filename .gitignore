@@ -6,6 +6,5 @@ utils/repo/repositories
 utils/repo/repository
 *.wav
 metadata.json
-repositories
 uploads/
 tmp
