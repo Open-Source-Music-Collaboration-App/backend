@@ -104,6 +104,19 @@ def parse_tracks(root):
             # print(len(keytracks))
             
             notes = []
+            
+            start = event["CurrentStart"]["Value"]
+            end = event["CurrentEnd"]["Value"]
+            loopStart = event["Loop"]["LoopStart"]["Value"]
+            loopEnd = event["Loop"]["LoopEnd"]["Value"]
+            
+            eventRange = int(end) - int(start)
+            loopRange = int(loopEnd) - int(loopStart)
+            repeats = eventRange // loopRange
+            lastLoopRange = eventRange % loopRange
+            
+            
+            
             for i in range(len(keytracks)):
               keytrack = keytracks[i]
               num_occurences = len(keytrack["Notes"]["MidiNoteEvent"])
@@ -124,21 +137,52 @@ def parse_tracks(root):
               }
               notes.append(note_data)
               
-              
-            event_data = {
-              "start": event["CurrentStart"]["Value"],
-              "end": event["CurrentEnd"]["Value"],
-              "loop": {
-                "start": event["Loop"]["LoopStart"]["Value"],
-                "end": event["Loop"]["LoopEnd"]["Value"],
-                "on": event["Loop"]["LoopOn"]["Value"],
-                "hiddenLoopStart": event["Loop"]["HiddenLoopStart"]["Value"],
-                "hiddenLoopEnd": event["Loop"]["HiddenLoopEnd"]["Value"]
-              },
-              "notes": notes
-            }
-            formatted_events.append(event_data)
-            data["events"] = formatted_events        
+            if repeats == 1 and lastLoopRange == 0:
+              event_data = {
+                "start": event["CurrentStart"]["Value"],
+                "end": event["CurrentEnd"]["Value"],
+                "loop": {
+                  "start": event["Loop"]["LoopStart"]["Value"],
+                  "end": event["Loop"]["LoopEnd"]["Value"],
+                  "on": event["Loop"]["LoopOn"]["Value"],
+                  "hiddenLoopStart": event["Loop"]["HiddenLoopStart"]["Value"],
+                  "hiddenLoopEnd": event["Loop"]["HiddenLoopEnd"]["Value"]
+                },
+                "notes": notes
+              }
+              formatted_events.append(event_data)
+              data["events"] = formatted_events     
+            else:
+              for r in range(int(repeats)):
+                event_data = {
+                  "start": int(start) + (r * loopRange),
+                  "end": int(start) + ((r + 1) * loopRange),
+                  "loop": {
+                    "start": loopStart,
+                    "end": loopEnd,
+                    "on": event["Loop"]["LoopOn"]["Value"],
+                    "hiddenLoopStart": event["Loop"]["HiddenLoopStart"]["Value"],
+                    "hiddenLoopEnd": event["Loop"]["HiddenLoopEnd"]["Value"]
+                  },
+                  "notes": notes
+                }
+                formatted_events.append(event_data)
+              if lastLoopRange > 0:
+                event_data = {
+                  "start": int(start) + (repeats * loopRange),
+                  "end": int(start) + (repeats * loopRange) + lastLoopRange,
+                  "loop": {
+                    "start": loopStart,
+                    "end": loopEnd,
+                    "on": event["Loop"]["LoopOn"]["Value"],
+                    "hiddenLoopStart": event["Loop"]["HiddenLoopStart"]["Value"],
+                    "hiddenLoopEnd": event["Loop"]["HiddenLoopEnd"]["Value"]
+                  },
+                  "notes": notes
+                }
+                formatted_events.append(event_data)
+              data["events"] = formatted_events
+        # print(json.dumps(data, indent=4))   
         
         elif track.tag == "AudioTrack":
           # for each event:
@@ -228,6 +272,9 @@ def main(folder_path, output_folder=None):
     # Extract track details
     tracks = parse_tracks(root)
     
+    maintrack = root.find("LiveSet").find("MainTrack")
+    tempo = maintrack.find("DeviceChain").find("Mixer").find("Tempo").find("Manual").attrib.get("Value", "Unknown")
+    
     # # Match tracks with corresponding bounced WAV files
     matched_tracks = match_wav_files(folder_path, als_name, tracks)
     
@@ -244,7 +291,7 @@ def main(folder_path, output_folder=None):
     # Save JSON output
     json_output_path = os.path.join("./" if not output_folder else output_folder, "ableton_project.json")
     with open(json_output_path, "w") as json_file:
-        json.dump({"project": als_name, "tracks": matched_tracks}, json_file, indent=4)
+        json.dump({"project": als_name, "tempo": tempo, "tracks": matched_tracks}, json_file, indent=4)
     
     print(f"Ableton project parsed and saved to {json_output_path}")
     print(f"Bounced tracks saved in: {tracks_folder}/")
