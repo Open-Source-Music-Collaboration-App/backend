@@ -13,8 +13,6 @@ const init = () => {
     if (!fs.existsSync(REPOSITORY_PATH)) {
         fs.mkdirSync(REPOSITORY_PATH, { recursive: true })
     }
-
-    initGit(REPOSITORY_PATH);
 }
 
 module.exports = {

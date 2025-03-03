@@ -1,29 +1,23 @@
 const { simpleGit } = require("simple-git");
 
-let git;
+class Git {
+    constructor(basedir) {
+        this.git = simpleGit(basedir);
+    }
 
-const initGit = (basedir) => {
-    console.log('initGit:', git);
-    git = simpleGit(basedir);
+    async createAbletonRepo(userId, songId) {
+        console.log('createAlbetonRepo:', this.git);
+        await this.git.init([`${songId}`])
+    }
+
+    commitAbletonUpdate(userId, songId, commitMessage) {
+
+    }
+
+    getAbletonVersionHistory(userId, songId) {
+
+    }
 }
 
-async function createAbletonRepo(userId, songId) {
-    console.log('createAlbetonRepo:', git);
-    await git.init([`${songId}`])
-}
-
-function commitAbletonUpdate(userId, songId, commitMessage) {
-  
-}
-
-function getAbletonVersionHistory(userId, songId) {
-
-}
-
-module.exports = {
-    initGit,
-    createAbletonRepo,
-    commitAbletonUpdate,
-    getAbletonVersionHistory
-};
+module.exports = Git;
 
