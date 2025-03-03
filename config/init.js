@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("node:path");
 const { initGit } = require("../services/git");
 
-const REPOSITORY_PATH = path.join(".", "repositories");
-const UPLOAD_PATH = path.join(".", "uploads");
+const REPOSITORY_PATH = path.join(".", "tmp", "repositories");
+const UPLOAD_PATH = path.join(".", "tmp", "uploads");
 
 const init = () => {
     if (!fs.existsSync(UPLOAD_PATH)) {
