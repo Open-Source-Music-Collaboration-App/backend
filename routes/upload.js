@@ -3,7 +3,7 @@ const busboy = require("busboy");
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
-const { UPLOAD_PATH } = require("../config/init")
+const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init")
 
 const uploadRouter = express.Router();
 
@@ -74,7 +74,7 @@ uploadRouter.post("/", (req, res) => {
         const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
         const alsFilePath = path.join(UPLOAD_PATH);
 
-        const repoPath = path.join(__dirname, `../utils/repo/repository/${userId}/${projectId}`);
+        const repoPath = path.join(REPOSITORY_PATH, projectId);
         const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
         console.log("Executing command:", command);
         exec(command, (error, stdout, stderr) => {
