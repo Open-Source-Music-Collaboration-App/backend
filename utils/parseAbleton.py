@@ -121,7 +121,11 @@ def parse_tracks(root):
               keytrack = keytracks[i]
               num_occurences = len(keytrack["Notes"]["MidiNoteEvent"])
               occurences_data = []
-              for occurence in keytrack["Notes"]["MidiNoteEvent"]:
+              note_events = keytrack["Notes"]["MidiNoteEvent"]
+              if isinstance(note_events, dict):
+                note_events = [note_events]
+              for occurence in note_events:
+                
                 occurence_data = {
                   "start": occurence["Time"],
                   "duration": occurence["Duration"],

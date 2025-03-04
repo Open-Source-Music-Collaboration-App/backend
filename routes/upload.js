@@ -80,9 +80,6 @@ uploadRouter.post("/", (req, res) => {
         const alsFileName = files.find(file => file.filename.endsWith('.als')).filename;
         const alsFileSrcPath = path.join(UPLOAD_PATH, alsFileName);
         const alsFileDestPath = path.join(repoPath, alsFileName);
-        fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
-        console.log("alsFileSrcPath:", alsFileSrcPath);
-        console.log("alsFileDestPath:", alsFileDestPath);
 
         const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
         console.log("Executing command:", command);
@@ -97,6 +94,7 @@ uploadRouter.post("/", (req, res) => {
 
 
           const git = await createGitHandler(repoPath);
+          fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
           git.commitAbletonUpdate(userId, projectId, commitMessage);
         });
 
