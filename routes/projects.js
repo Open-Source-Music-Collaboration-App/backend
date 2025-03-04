@@ -3,6 +3,7 @@ const projectsRouter = express.Router();
 const supabase = require('../services/supabase');
 const { createAbletonRepo } = require("../services/git");
 const { REPOSITORY_PATH } = require("../config/init");
+const fs = require("fs");
 
 // Create a new project
 projectsRouter.post("/", async (req, res) => {
