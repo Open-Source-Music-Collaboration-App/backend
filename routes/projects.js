@@ -67,10 +67,40 @@ projectsRouter.get("/:projectId", async (req, res) => {
       .select('*, User(name)')
       .eq('id', projectId);
 
+
+    // send tmp/repositories/projectId/<file>.als
+    // send tmp/repositories/projectId/ableton_project.json
+    // send tmp/repositories/projectId/tracks/*.wav
+    
+    const repoPath = `${REPOSITORY_PATH}/${projectId}`;
+    const projectFilePath = `${repoPath}/ableton_project.json`;
+    const projectFileExists = fs.existsSync(projectFilePath);
+    console.log("Project file exists:", projectFileExists);
+    if (projectFileExists) {
+      const projectFileContent = fs.readFileSync(projectFilePath, 'utf8');
+      data.projectFile = JSON.parse(projectFileContent);
+    }
+    const alsFiles = fs.readdirSync(repoPath).filter(file => file.endsWith('.als'));
+    // console.log("ALS files:", alsFiles[0]);
+    data.alsFile = alsFiles[0];
+    const tracksDir = `${repoPath}/tracks`;
+    const trackFiles = fs.readdirSync(tracksDir).filter(file => file.endsWith('.wav'));
+    // console.log("Track files:", trackFiles);
+    data.tracks = trackFiles;
+    
+
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return res.status(500).json({ error: "Database error", details: error.message });
+    } 
+    
+
     if (!data) {
       return res.status(404).json({ error: "Project not found" });
     }
     
+    console.log("Fetched project:", data);
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch project", details: err.message });
