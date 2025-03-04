@@ -85,9 +85,12 @@ projectsRouter.get("/:projectId", async (req, res) => {
     // console.log("ALS files:", alsFiles[0]);
     data.alsFile = alsFiles[0];
     const tracksDir = `${repoPath}/tracks`;
-    const trackFiles = fs.readdirSync(tracksDir).filter(file => file.endsWith('.wav'));
-    // console.log("Track files:", trackFiles);
-    data.tracks = trackFiles;
+
+    if( fs.existsSync(tracksDir))
+    {
+      const tracks = fs.readdirSync(tracksDir).filter(file => file.endsWith('.wav'));
+      data.tracks = trackFiles;
+    }
     
 
 
