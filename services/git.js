@@ -55,7 +55,7 @@ async function createGitHandler(basedir) {
 
         try {
             console.log('Committing');
-            await git.commit(commitMessage);
+            await git.commit(commitMessage, {'--author': `${userId} <>`});
             console.log('Committed');
         } catch (e) {
             console.log('git commit FAILED', e);

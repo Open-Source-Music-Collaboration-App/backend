@@ -89,7 +89,7 @@ projectsRouter.get("/:projectId", async (req, res) => {
     if( fs.existsSync(tracksDir))
     {
       const tracks = fs.readdirSync(tracksDir).filter(file => file.endsWith('.wav'));
-      data.tracks = trackFiles;
+      data.tracks = tracks;
     }
     
 
