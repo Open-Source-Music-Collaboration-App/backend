@@ -65,8 +65,9 @@ async function createGitHandler(basedir) {
 
 
 
-    const getAbletonVersionHistory = (userId, songId) => {
-
+    const getAbletonVersionHistory = () => {
+        // console.log(git.log());
+        return git.log();
     }
     await initIfNotRepo();
 
@@ -77,6 +78,6 @@ async function createGitHandler(basedir) {
 
 module.exports = {
     createGitHandler,
-    createAbletonRepo
+    createAbletonRepo,
 };
 
