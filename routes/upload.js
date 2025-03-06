@@ -95,7 +95,7 @@ uploadRouter.post("/", (req, res) => {
 
           const git = await createGitHandler(repoPath);
           fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
-          git.commitAbletonUpdate(userId, projectId, commitMessage);
+          git.commitAbletonUpdate(userId, commitMessage);
         });
 
         res.status(201).json({

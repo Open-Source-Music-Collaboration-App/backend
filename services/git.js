@@ -1,6 +1,7 @@
 const { simpleGit } = require("simple-git");
 const path = require('path');
-const { REPOSITORY_PATH } = require("../config/init");
+const { REPOSITORY_PATH, ARCHIVE_PATH } = require("../config/init");
+const { exec } = require("child_process");
 
 // Single instance for handling git init within REPOSITORY_PATH dir
 const gitBaseHandler = simpleGit();
@@ -18,14 +19,19 @@ async function createAbletonRepo(userId, songId) {
     }
 }
 
-/*
-Factory function for creating git handlers for repos within REPOSITORY_PATH dir
-Will initialize repo if not initialized already
-*/
+/**
+ * Factory function for creating git handlers for repos within REPOSITORY_PATH dir
+ * Will initialize repo if not initialized already
+ * @param {*} basedir the directory to run commands in
+ * @returns {Object} a git instance that within the basedir
+ */
 async function createGitHandler(basedir) {
     const git = simpleGit(basedir);
-    /*
-    Initialize basedir as a repository if not already
+    const workingDir = basedir;
+    const songId = path.basename(workingDir);
+    /** 
+    * Initialize basedir as a repository if not already
+    * @returns Nothing
     */
     const initIfNotRepo = async () => {
         const isRepo = await git.checkIsRepo("root");
@@ -43,7 +49,13 @@ async function createGitHandler(basedir) {
         }
     }
 
-    const commitAbletonUpdate = async (userId, songId, commitMessage) => {
+    /**
+     * Git add all files and makes a commit in the main branch
+     * @param {*} userId Id of user making commit
+     * @param {*} commitMessage Message that will be committed
+     * @returns {void}
+     */
+    const commitAbletonUpdate = async (userId, commitMessage) => {
         try {
             console.log('Adding');
             await git.add('.')
@@ -55,7 +67,7 @@ async function createGitHandler(basedir) {
 
         try {
             console.log('Committing');
-            await git.commit(commitMessage, {'--author': `${userId} <>`});
+            await git.commit(commitMessage, { '--author': `${userId} <>` });
             console.log('Committed');
         } catch (e) {
             console.log('git commit FAILED', e);
@@ -64,16 +76,54 @@ async function createGitHandler(basedir) {
     }
 
 
-
+    /**
+     * Returns log of main branch
+     * @returns Object with git history
+     */
     const getAbletonVersionHistory = async () => {
         const log = await git.log();
         console.log(log);
         return log;
     }
+
+    /**
+     * Creates a ZIP archive of the files from a specified commit using git archive.
+     * @param {*} hash Commit hash
+     * @returns Path to archive
+     */
+    const createArchive = async (hash) => {
+        try {
+            const objType = await git.catFile(['-t', hash]);
+            if (objType.trim() !== 'commit') {
+                return;
+            }
+        } catch (e) {
+            console.log("Failed git cat-file:", e);
+            return null;
+        }
+
+        const archiveName = `${songId}-${hash}.zip`;
+        const outputPath = path.resolve(ARCHIVE_PATH, archiveName);
+        const command = `git archive --format=zip -o ${outputPath} ${hash}`;
+        return new Promise((resolve, reject) => {
+            exec(command, { cwd: workingDir }, (error, stdout, stderr) => {
+                if (error) {
+                    console.log('exec for git archive error:', error);
+                    reject(error);
+                    return;
+                }
+
+                console.log('Created archive');
+                resolve(outputPath);
+            })
+        })
+
+    }
+
     await initIfNotRepo();
 
     return {
-        commitAbletonUpdate, getAbletonVersionHistory
+        commitAbletonUpdate, getAbletonVersionHistory, createArchive
     }
 }
 

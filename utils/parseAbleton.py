@@ -228,18 +228,24 @@ def parse_tracks(root):
     return tracks_data
 
 def match_wav_files(folder_path, als_name, tracks):
-    """Match track names with corresponding bounced WAV files."""
-    wav_files = [f for f in os.listdir(folder_path) if f.endswith(".wav")]
+    """Match track names with corresponding bounced audio files (.wav or .flac)."""
+    audio_files = [f for f in os.listdir(folder_path) if f.endswith((".wav", ".flac"))]
     matched_tracks = []
     
     for track in tracks:
         track_number = track["id"]
-        expected_filename = f"{als_name} {track['name']}.wav"
+        # Match audio files that start with the project name and track name
+        matching_audio = next((audio for audio in audio_files if audio.startswith(f"{als_name} {track['name']}")), None)
         
-        matching_wav = next((wav for wav in wav_files if wav.startswith(f"{als_name} {track['name']}")), None)
-        # print(f"Matching {expected_filename} with {matching_wav}")
-        if matching_wav:
-            track["wav_file"] = matching_wav
+        if matching_audio:
+            # Store original file info for copying
+            track["original_audio_file"] = matching_audio
+            
+            # Change extension to .flac in the track data (this will be in the JSON)
+            base_name = os.path.splitext(matching_audio)[0]
+            track["audio_file"] = f"{base_name}.flac"
+            track["audio_format"] = "flac"
+            
             matched_tracks.append(track)
     
     return matched_tracks
@@ -250,16 +256,43 @@ def clean_tracks_folder(tracks_folder):
         shutil.rmtree(tracks_folder)
     os.makedirs(tracks_folder)
 
+
 def move_bounced_tracks(folder_path, tracks_folder, matched_tracks):
-    """Move matched WAV files to the tracks/ folder."""
+    """Move matched audio files to the tracks/ folder, converting WAV to FLAC."""
+    import subprocess
+    import sys
+    
+    # Import compresswav utility
+    compresswav_path = os.path.join(os.path.dirname(__file__), "compresswav.py")
+    
     for track in matched_tracks:
-        if track["wav_file"]:
-            src_path = os.path.join(folder_path, track["wav_file"])
-            dest_path = os.path.join(tracks_folder, track["wav_file"])
-            shutil.copy(src_path, dest_path)
+        if track.get("original_audio_file"):
+            original_file = track["original_audio_file"]
+            src_path = os.path.join(folder_path, original_file)
+            
+            # Destination will always be .flac
+            flac_filename = track["audio_file"]  # Already has .flac extension
+            dest_path = os.path.join(tracks_folder, flac_filename)
+            
+            # If source is WAV, convert to FLAC
+            if original_file.lower().endswith(".wav"):
+                print(f"Converting {original_file} to FLAC...")
+                try:
+                    subprocess.run([sys.executable, compresswav_path, src_path, dest_path], check=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"Error converting {original_file} to FLAC: {e}")
+                    # Fallback to copy if conversion fails
+                    print(f"Falling back to direct copy of original file")
+                    shutil.copy(src_path, os.path.join(tracks_folder, original_file))
+                    # Update track data to use original file
+                    track["audio_file"] = original_file
+                    track["audio_format"] = os.path.splitext(original_file)[1][1:]
+            else:
+                # If already FLAC, just copy
+                shutil.copy(src_path, dest_path)
 
 def main(folder_path, output_folder=None):
-    """Main function to parse the Ableton project and process WAV files."""
+    """Main function to parse the Ableton project and process audio files."""
     als_file = next((f for f in os.listdir(folder_path) if f.endswith(".als")), None)
     if not als_file:
         print("No Ableton project (.als) found!")
@@ -279,7 +312,7 @@ def main(folder_path, output_folder=None):
     maintrack = root.find("LiveSet").find("MainTrack")
     tempo = maintrack.find("DeviceChain").find("Mixer").find("Tempo").find("Manual").attrib.get("Value", "Unknown")
     
-    # # Match tracks with corresponding bounced WAV files
+    # Match tracks with corresponding bounced audio files
     matched_tracks = match_wav_files(folder_path, als_name, tracks)
     
     # Validate track count
@@ -290,6 +323,8 @@ def main(folder_path, output_folder=None):
     # Clear and repopulate tracks folder
     tracks_folder = "./tracks" if not output_folder else os.path.join(output_folder, "tracks")
     clean_tracks_folder(tracks_folder)
+    
+    # Convert WAV files to FLAC and move them to the tracks folder
     move_bounced_tracks(folder_path, tracks_folder, matched_tracks)
     
     # Save JSON output
@@ -298,12 +333,64 @@ def main(folder_path, output_folder=None):
         json.dump({"project": als_name, "tempo": tempo, "tracks": matched_tracks}, json_file, indent=4)
     
     print(f"Ableton project parsed and saved to {json_output_path}")
-    print(f"Bounced tracks saved in: {tracks_folder}/")
-
+    print(f"Converted and saved audio files to: {tracks_folder}/")
+    
+def migrate_wav_to_flac(repositories_path):
+    """Migrate existing WAV files to FLAC in all repositories."""
+    import subprocess
+    import sys
+    
+    compresswav_path = os.path.join(os.path.dirname(__file__), "compresswav.py")
+    
+    # Iterate through all project folders
+    for project_id in os.listdir(repositories_path):
+        project_path = os.path.join(repositories_path, project_id)
+        tracks_path = os.path.join(project_path, "tracks")
+        
+        if not os.path.isdir(tracks_path):
+            continue
+            
+        # Find all WAV files
+        wav_files = [f for f in os.listdir(tracks_path) if f.endswith(".wav")]
+        
+        for wav_file in wav_files:
+            wav_path = os.path.join(tracks_path, wav_file)
+            flac_path = os.path.join(tracks_path, f"{os.path.splitext(wav_file)[0]}.flac")
+            
+            # Convert WAV to FLAC
+            try:
+                print(f"Converting {wav_path} to {flac_path}")
+                subprocess.run([sys.executable, compresswav_path, wav_path, flac_path], check=True)
+                
+                # Update JSON to reference FLAC instead of WAV
+                json_path = os.path.join(project_path, "ableton_project.json")
+                if os.path.exists(json_path):
+                    with open(json_path, 'r') as f:
+                        data = json.load(f)
+                    
+                    # Update track references
+                    for track in data.get('tracks', []):
+                        if track.get('audio_file') == wav_file:
+                            track['audio_file'] = f"{os.path.splitext(wav_file)[0]}.flac"
+                            track['audio_format'] = "flac"
+                    
+                    # Save updated JSON
+                    with open(json_path, 'w') as f:
+                        json.dump(data, f, indent=4)
+                
+                # Remove original WAV file after successful conversion
+                os.remove(wav_path)
+                
+            except Exception as e:
+                print(f"Error converting {wav_path}: {e}")
+                
+                
+                
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
         print("Usage: python parseAbleton.py <folder_path> <optional: output_folder>")
     else:
         main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
-      
+        
+

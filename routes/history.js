@@ -4,7 +4,7 @@ const historyRouter = express.Router();
 const path = require('path');
 
 const { createGitHandler } = require("../services/git");
-const { REPOSITORY_PATH } = require("../config/init");
+const { REPOSITORY_PATH, ARCHIVE_PATH } = require("../config/init");
 
 // Get all commits history for a project
 historyRouter.get('/all/:userId/:projectId', async (req, res) => {
@@ -45,5 +45,14 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
     });
   }
 });
+
+historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {
+  const { userId, projectId, commitHash } = req.params;
+  const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
+
+  const archivePath = await git.createArchive(commitHash);
+  console.log("HERE");
+  res.sendFile(archivePath);
+})
 
 module.exports = historyRouter;
