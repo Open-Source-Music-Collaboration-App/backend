@@ -92,9 +92,21 @@ async function createGitHandler(basedir) {
      */
 
     const getLatestCommitHash = async () => {
-        const log = await git.log();
-        console.log(log.latest.hash);
-        return log.latest.hash;
+        console.log("Getting latest commit hash");
+
+
+        try{
+          const log = await git.log();
+          // console.log(log); 
+          console.log(log.latest.hash);
+          return log.latest.hash;
+        }
+        catch(e){
+          console.log("Failed git log:", e);
+          return "-1";
+        }
+
+        return "-1";
     }
 
     /**

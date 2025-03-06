@@ -15,6 +15,17 @@ uploadRouter.post("/", (req, res) => {
   let files = [];
   let jsonData = {};
 
+  //remove all files in UPLOAD_PATH folder  
+  try {
+    const files = fs.readdirSync(UPLOAD_PATH);
+    for (const file of files) {
+      fs.unlinkSync(path.join(UPLOAD_PATH, file));
+    }
+    console.log("Cleaned up upload directory");
+  } catch (err) {
+    console.error("Error cleaning up upload directory:", err);
+  }
+
   bb.on("file", (fieldname, fileStream, fileInfo) => {
     let { filename, encoding, mimeType } = fileInfo;
     console.log("Receiving file:", filename);

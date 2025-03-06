@@ -64,7 +64,8 @@ def parse_tracks(root):
           "name": track_name,
           "volume": volume,
           "volumeMin": volumeMin,
-          "volumeMax": volumeMax
+          "volumeMax": volumeMax,
+          "events": []
         }
         
         if track.tag == "MidiTrack":
@@ -254,7 +255,7 @@ def clean_tracks_folder(tracks_folder):
     """Clear the tracks/ folder before moving new bounced files."""
     if os.path.exists(tracks_folder):
         shutil.rmtree(tracks_folder)
-    os.makedirs(tracks_folder)
+    os.makedirs(tracks_folder)   
 
 
 def move_bounced_tracks(folder_path, tracks_folder, matched_tracks):

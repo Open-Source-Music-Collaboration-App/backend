@@ -52,6 +52,9 @@ historyRouter.get('/latest/:userId/:projectId', async (req, res) => {
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
 
   const latestCommitHash = await git.getLatestCommitHash();
+  if (latestCommitHash === "-1") {
+    return res.status(204).json({ error: "Repository is empty" });
+  }
   const archivePath = await git.createArchive(latestCommitHash);
   res.sendFile(archivePath);
 })
