@@ -87,6 +87,17 @@ async function createGitHandler(basedir) {
     }
 
     /**
+     * Returns the latest commit hash
+     * @returns Commit hash
+     */
+
+    const getLatestCommitHash = async () => {
+        const log = await git.log();
+        console.log(log.latest.hash);
+        return log.latest.hash;
+    }
+
+    /**
      * Creates a ZIP archive of the files from a specified commit using git archive.
      * @param {*} hash Commit hash
      * @returns Path to archive
@@ -123,7 +134,7 @@ async function createGitHandler(basedir) {
     await initIfNotRepo();
 
     return {
-        commitAbletonUpdate, getAbletonVersionHistory, createArchive
+        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash
     }
 }
 

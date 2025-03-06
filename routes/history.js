@@ -46,6 +46,16 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
   }
 });
 
+//latest commit only
+historyRouter.get('/latest/:userId/:projectId', async (req, res) => {
+  const { userId, projectId } = req.params;
+  const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
+
+  const latestCommitHash = await git.getLatestCommitHash();
+  const archivePath = await git.createArchive(latestCommitHash);
+  res.sendFile(archivePath);
+})
+
 historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {
   const { userId, projectId, commitHash } = req.params;
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
