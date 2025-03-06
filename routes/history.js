@@ -2,6 +2,7 @@
 const express = require('express');
 const historyRouter = express.Router();
 const path = require('path');
+const fs = require('fs');
 
 const { createGitHandler } = require("../services/git");
 const { REPOSITORY_PATH, ARCHIVE_PATH } = require("../config/init");
@@ -49,6 +50,7 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
 //latest commit only
 historyRouter.get('/latest/:userId/:projectId', async (req, res) => {
   const { userId, projectId } = req.params;
+  console.log(userId, projectId);
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
 
   const latestCommitHash = await git.getLatestCommitHash();
@@ -56,7 +58,15 @@ historyRouter.get('/latest/:userId/:projectId', async (req, res) => {
     return res.status(204).json({ error: "Repository is empty" });
   }
   const archivePath = await git.createArchive(latestCommitHash);
-  res.sendFile(archivePath);
+  //wait until archivePath is fully created before sending
+  if( !fs.existsSync(archivePath)){
+    console.log("File not found");
+    return res.status(500).json({ error: "Failed to create archive" });
+  }
+  const output = fs.readFileSync(archivePath);
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename=${projectId}-${latestCommitHash}.zip`);
+  res.send(output);
 })
 
 historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {
