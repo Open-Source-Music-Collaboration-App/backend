@@ -18,14 +18,17 @@ async function createAbletonRepo(userId, songId) {
     }
 }
 
-/*
-Factory function for creating git handlers for repos within REPOSITORY_PATH dir
-Will initialize repo if not initialized already
-*/
+/**
+ * Factory function for creating git handlers for repos within REPOSITORY_PATH dir
+ * Will initialize repo if not initialized already
+ * @param {*} basedir the directory to run commands in
+ * @returns {void}
+ */
 async function createGitHandler(basedir) {
     const git = simpleGit(basedir);
-    /*
-    Initialize basedir as a repository if not already
+    /** 
+    * Initialize basedir as a repository if not already
+    * @returns Nothing
     */
     const initIfNotRepo = async () => {
         const isRepo = await git.checkIsRepo("root");
@@ -43,6 +46,13 @@ async function createGitHandler(basedir) {
         }
     }
 
+    /**
+     * Git add all files and makes a commit in the main branch
+     * @param {*} userId Id of user making commit
+     * @param {*} songId 
+     * @param {*} commitMessage Message that will be committed
+     * @returns {void}
+     */
     const commitAbletonUpdate = async (userId, songId, commitMessage) => {
         try {
             console.log('Adding');
@@ -64,12 +74,20 @@ async function createGitHandler(basedir) {
     }
 
 
-
+    /**
+     * Returns log of main branch
+     * @returns Object with git history
+     */
     const getAbletonVersionHistory = async () => {
         const log = await git.log();
         console.log(log);
         return log;
     }
+
+    const getFilesFromCommit = async (hash) => {
+        const commitExists = git.catFile()
+    }
+    
     await initIfNotRepo();
 
     return {
