@@ -84,14 +84,16 @@ projectsRouter.get("/:projectId", async (req, res) => {
     const alsFiles = fs.readdirSync(repoPath).filter(file => file.endsWith('.als'));
     // console.log("ALS files:", alsFiles[0]);
     data.alsFile = alsFiles[0];
+    // In the GET /:projectId route handler
     const tracksDir = `${repoPath}/tracks`;
 
-    if( fs.existsSync(tracksDir))
-    {
-      const tracks = fs.readdirSync(tracksDir).filter(file => file.endsWith('.wav'));
+    if (fs.existsSync(tracksDir)) {
+      const tracks = fs.readdirSync(tracksDir).filter(file => 
+        file.endsWith('.wav') || file.endsWith('.flac')
+      );
       data.tracks = tracks;
     }
-    
+        
 
 
     if (error) {
