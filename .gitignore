@@ -8,3 +8,5 @@ utils/repo/repository
 metadata.json
 uploads/
 tmp
+routes/venv
+routes/requirements.txt

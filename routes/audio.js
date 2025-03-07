@@ -8,8 +8,8 @@ const audioRouter = express.Router();
 audioRouter.post("/compare", async (req, res) => {
   try {
     // Read and decode WAV files
-    const file1 = null; // TODO: read files from backend
-    const file2 = null; // TODO: read files from backend
+    const file1 = "TODO"; // TODO: read files from backend
+    const file2 = "TODO"; // TODO: read files from backend
 
     const similarity = compareWavFiles(file1, file2);
 
