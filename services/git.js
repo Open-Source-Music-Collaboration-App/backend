@@ -2,6 +2,7 @@ const { simpleGit } = require("simple-git");
 const path = require('path');
 const { REPOSITORY_PATH, ARCHIVE_PATH } = require("../config/init");
 const { exec } = require("child_process");
+const fs = require("fs");
 
 // Single instance for handling git init within REPOSITORY_PATH dir
 const gitBaseHandler = simpleGit();
@@ -100,7 +101,14 @@ async function createGitHandler(basedir) {
         console.log("Getting latest commit hash");
 
 
+        //check if repo is empty
+        if(fs.readdirSync(workingDir).length === 1){
+          console.log("Repo is empty");
+          return "-1";
+        }
+
         try{
+          console.log("!!!Getting log");
           const log = await git.log();
           // console.log(log); 
           console.log(log.latest.hash);

@@ -83,6 +83,8 @@ historyRouter.post('/restore/:userId/:projectId/:commitHash', async (req, res) =
 historyRouter.get('/all/:userId/:projectId', async (req, res) => {
   try {
     const { userId, projectId } = req.params;
+
+    console.log("Getting all commits");
     
     // Input validation
     if (!userId || !projectId) {
@@ -91,6 +93,14 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
 
     const repoPath = path.join(REPOSITORY_PATH, projectId);
     const git = await createGitHandler(repoPath);
+
+    console.log("!!!Created git handler");
+    if( await git.getLatestCommitHash() === "-1"){
+      console.log("Repo is empty");
+      return res.status(204).json({ error: "Repository is empty" });
+    }
+
+    console.log(git.getLatestCommitHash());
     
     const history = await git.getAbletonVersionHistory();
     
@@ -133,24 +143,34 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
 
 //latest commit only
 historyRouter.get('/latest/:userId/:projectId', async (req, res) => {
+  console.log("GETTING LATEST COMMIT");
   const { userId, projectId } = req.params;
   console.log(userId, projectId);
+  
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
 
-  const latestCommitHash = await git.getLatestCommitHash();
-  if (latestCommitHash === "-1") {
-    return res.status(204).json({ error: "Repository is empty" });
+  try {
+    const latestCommitHash = await git.getLatestCommitHash();
+    if( latestCommitHash === "-1"){
+      return res.status(204).json({ error: "Repository is empty" });
+    }
+    const archivePath = await git.createArchive(latestCommitHash);
+    //wait until archivePath is fully created before sending
+    if( !fs.existsSync(archivePath)){
+      console.log("File not found");
+      return res.status(500).json({ error: "Failed to create archive" });
+    }
+    const output = fs.readFileSync(archivePath);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename=${projectId}-${latestCommitHash}.zip`);
+    res.send(output);
+  } catch (err) {
+    console.error('Error getting latest commit:', err);
+    res.status(204).json({
+      error: 'Repo is empty',
+      details: err.message
+    });
   }
-  const archivePath = await git.createArchive(latestCommitHash);
-  //wait until archivePath is fully created before sending
-  if( !fs.existsSync(archivePath)){
-    console.log("File not found");
-    return res.status(500).json({ error: "Failed to create archive" });
-  }
-  const output = fs.readFileSync(archivePath);
-  res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', `attachment; filename=${projectId}-${latestCommitHash}.zip`);
-  res.send(output);
 })
 
 historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {

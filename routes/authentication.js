@@ -21,7 +21,9 @@ authRouter.get('/github/callback',
           return res.status(500).json({ message: "Failed to process user", error: result.error });
         }
 
-        res.redirect('http://localhost:5173/dashboard'); // Redirect frontend after login
+        //get request hostname
+        console.log(req.hostname);
+        res.redirect(`http://${req.hostname}:5173/dashboard`); // Redirect frontend after login
     }
 );
 
