@@ -9,11 +9,8 @@ const { REPOSITORY_PATH, ARCHIVE_PATH } = require("../config/init");
 
 // Get all commits history for a project
 historyRouter.get('/all/:userId/:projectId', async (req, res) => {
-
-
   try {
     const { userId, projectId } = req.params;
-    
     
     // Input validation
     if (!userId || !projectId) {
@@ -25,19 +22,34 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
     
     const history = await git.getAbletonVersionHistory();
     
-    if (!history || history.error) {
-      return res.status(404).json({ 
-        error: 'Could not retrieve commit history',
-        details: history?.error || 'Repository may not exist or has no commits'
-      });
-    }
+    // Extract track changes from commit messages
+    const historyWithChanges = history.all.map(commit => {
+      // Parse track changes from commit message
+      const trackChangesMatch = commit.message.match(/Track-Changes: (.+)$/s);
+      let trackChanges = null;
+      
+      if (trackChangesMatch && trackChangesMatch[1]) {
+        try {
+          trackChanges = JSON.parse(trackChangesMatch[1]);
+        } catch (e) {
+          console.error('Failed to parse track changes:', e);
+        }
+      }
+      
+      return {
+        ...commit,
+        trackChanges
+      };
+    });
     
     res.status(200).json({ 
       projectId: projectId, 
       userId: userId, 
-      history: history 
+      history: {
+        ...history,
+        all: historyWithChanges
+      }
     });
-    
   } catch (err) {
     console.error('Error getting commit history:', err);
     res.status(500).json({ 

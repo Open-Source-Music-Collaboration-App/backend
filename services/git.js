@@ -55,25 +55,30 @@ async function createGitHandler(basedir) {
      * @param {*} commitMessage Message that will be committed
      * @returns {void}
      */
-    const commitAbletonUpdate = async (userId, commitMessage) => {
-        try {
-            console.log('Adding');
-            await git.add('.')
-            console.log('Added');
-        } catch (e) {
-            console.log('git add FAILED', e);
-            return;
-        }
-
-        try {
-            console.log('Committing');
-            await git.commit(commitMessage, { '--author': `${userId} <>` });
-            console.log('Committed');
-        } catch (e) {
-            console.log('git commit FAILED', e);
-            return;
-        }
-    }
+    const commitAbletonUpdate = async (userId, commitMessage, trackChanges = null) => {
+      try {
+          console.log('Adding');
+          await git.add('.')
+          console.log('Added');
+      } catch (e) {
+          console.log('git add FAILED', e);
+          return;
+      }
+  
+      try {
+          // Store track changes in the commit message or in commit notes
+          const message = trackChanges ? 
+              `${commitMessage}\n\nTrack-Changes: ${JSON.stringify(trackChanges)}` : 
+              commitMessage;
+              
+          console.log('Committing');
+          await git.commit(message, { '--author': `${userId} <>` });
+          console.log('Committed');
+      } catch (e) {
+          console.log('git commit FAILED', e);
+          return;
+      }
+  }
 
 
     /**

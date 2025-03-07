@@ -5,6 +5,8 @@ const path = require("path");
 const { exec } = require("child_process");
 const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
 const { createGitHandler } = require("../services/git");
+const { compareTrackChanges } = require('../utils/trackComparison');
+
 
 const uploadRouter = express.Router();
 
@@ -93,20 +95,39 @@ uploadRouter.post("/", (req, res) => {
         const alsFileDestPath = path.join(repoPath, alsFileName);
 
         const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
+        
+        //before executing the command, store the current ableton_project.json
+        const previousJsonPath = path.join(repoPath, 'ableton_project.json');
+        let previousJson = null;
+        if (fs.existsSync(previousJsonPath)) {
+          previousJson = fs.readFileSync(previousJsonPath, 'utf8');
+        }
+        
         console.log("Executing command:", command);
-        exec(command, async (error, stdout, stderr) => {
+      exec(command, async (error, stdout, stderr) => {
           if (error) {
             console.error("Error executing script:", error);
             return;
           }
           console.log("Script output:", stdout);
           console.error("Script error output:", stderr);
-
-
-
+        
+          const repoPath = path.join(REPOSITORY_PATH, projectId);
           const git = await createGitHandler(repoPath);
+          
+        
+          // Get current ableton_project.json
+          const currentJsonPath = path.join(repoPath, 'ableton_project.json');
+          const currentJson = fs.readFileSync(currentJsonPath, 'utf8');
+        
+          // Compare versions and detect changes
+          let trackChanges = null;
+          if (previousJson) {
+            trackChanges = compareTrackChanges(previousJson, currentJson);
+          }
+        
           fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
-          git.commitAbletonUpdate(userId, commitMessage);
+          git.commitAbletonUpdate(userId, commitMessage, trackChanges);
         });
 
         res.status(201).json({
