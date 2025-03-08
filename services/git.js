@@ -57,29 +57,29 @@ async function createGitHandler(basedir) {
      * @returns {void}
      */
     const commitAbletonUpdate = async (userId, commitMessage, trackChanges = null) => {
-      try {
-          console.log('Adding');
-          await git.add('.')
-          console.log('Added');
-      } catch (e) {
-          console.log('git add FAILED', e);
-          return;
-      }
-  
-      try {
-          // Store track changes in the commit message or in commit notes
-          const message = trackChanges ? 
-              `${commitMessage}\n\nTrack-Changes: ${JSON.stringify(trackChanges)}` : 
-              commitMessage;
-              
-          console.log('Committing');
-          await git.commit(message, { '--author': `${userId} <>` });
-          console.log('Committed');
-      } catch (e) {
-          console.log('git commit FAILED', e);
-          return;
-      }
-  }
+        try {
+            console.log('Adding');
+            await git.add('.')
+            console.log('Added');
+        } catch (e) {
+            console.log('git add FAILED', e);
+            return;
+        }
+
+        try {
+            // Store track changes in the commit message or in commit notes
+            const message = trackChanges ?
+                `${commitMessage}\n\nTrack-Changes: ${JSON.stringify(trackChanges)}` :
+                commitMessage;
+
+            console.log('Committing');
+            await git.commit(message, { '--author': `${userId} <>` });
+            console.log('Committed');
+        } catch (e) {
+            console.log('git commit FAILED', e);
+            return;
+        }
+    }
 
 
     /**
@@ -102,21 +102,21 @@ async function createGitHandler(basedir) {
 
 
         //check if repo is empty
-        if(fs.readdirSync(workingDir).length === 1){
-          console.log("Repo is empty");
-          return "-1";
+        if (fs.readdirSync(workingDir).length === 1) {
+            console.log("Repo is empty");
+            return "-1";
         }
 
-        try{
-          console.log("!!!Getting log");
-          const log = await git.log();
-          // console.log(log); 
-          console.log(log.latest.hash);
-          return log.latest.hash;
+        try {
+            console.log("!!!Getting log");
+            const log = await git.log();
+            // console.log(log); 
+            console.log(log.latest.hash);
+            return log.latest.hash;
         }
-        catch(e){
-          console.log("Failed git log:", e);
-          return "-1";
+        catch (e) {
+            console.log("Failed git log:", e);
+            return "-1";
         }
 
         return "-1";
@@ -156,10 +156,62 @@ async function createGitHandler(basedir) {
 
     }
 
+    /**
+     * Restores working directory to the state in the specified commit
+     * Revert all changes from <hash>..HEAD
+     * @param {*} startHash - the hash to revert to
+     * @param {*} userId - the id associated with owner
+     * @param {String} message - the message for commit
+     */
+    const restoreCommit = async (startHash, userId, message) => {
+        try {
+            console.log(startHash)
+            const objType = await git.catFile(['-t', startHash]);
+            if (objType.trim() !== 'commit') {
+                return;
+            }
+        } catch (e) {
+            console.log("Failed git cat-file:", e);
+            return;
+        }
+
+        const log = await git.log();
+        const hashes = log.all.map(commit => commit.hash).reverse();
+        const startIdx = hashes.findIndex(hash => hash === startHash) + 1;
+
+        const commitsToRevert = hashes.slice(startIdx);
+
+        console.log("LOGGING===============")
+        for (const hash of commitsToRevert) {
+            console.log(hash);
+        }
+        console.log("LOGGING===============")
+
+        try {
+            console.log('Reverting');
+
+            await git.raw('revert', `${startHash}..HEAD`, '--no-commit');
+
+        } catch (e) {
+            console.log('git revert failed:', e);
+            return;
+        }
+
+        try {
+            console.log('Commiting revert');
+            await git.commit(message, { '--author': `${userId} <>` });
+        } catch (e) {
+            console.log('git commit failed');
+        }
+
+
+
+    }
+
     await initIfNotRepo();
 
     return {
-        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash
+        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash, restoreCommit
     }
 }
 
