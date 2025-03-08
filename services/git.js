@@ -156,10 +156,48 @@ async function createGitHandler(basedir) {
 
     }
 
+    /**
+     * Restores working directory to the state in the specified commit
+     * Revert all changes from <hash>..HEAD
+     * @param {*} hash - the hash to revert to
+     * @param {*} userId - the id associated with owner
+     * @param {String} message - the message for commit
+     */
+    const restoreCommit = async (hash, userId, message) => {
+        try {
+            const objType = await git.catFile(['-t', hash]);
+            if (objType.trim() !== 'commit') {
+                return;
+            }
+        } catch (e) {
+            console.log("Failed git cat-file:", e);
+            return;
+        }
+
+        try {
+            console.log('Reverting');
+            await git.revert(`${hash}..HEAD`, ['--no-commit']);
+            
+        } catch (e) {
+            console.log('git revert failed:', e);
+            return;
+        }
+
+        try {
+            console.log('Commiting revert');
+            await git.commit(message, { '--author': `${userId} <>` });
+        } catch (e) {
+            console.log('git commit failed');
+        }
+
+
+        
+    }
+
     await initIfNotRepo();
 
     return {
-        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash
+        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash, restoreCommit
     }
 }
 

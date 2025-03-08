@@ -22,47 +22,47 @@ historyRouter.post('/restore/:userId/:projectId/:commitHash', async (req, res) =
     const git = await createGitHandler(repoPath);
     
     // Create a temporary directory for restoration
-    const tempRestorePath = path.join(ARCHIVE_PATH, `restore-${projectId}-${Date.now()}`);
-    if (!fs.existsSync(tempRestorePath)) {
-      fs.mkdirSync(tempRestorePath, { recursive: true });
-    }
+    // const tempRestorePath = path.join(ARCHIVE_PATH, `restore-${projectId}-${Date.now()}`);
+    // if (!fs.existsSync(tempRestorePath)) {
+    //   fs.mkdirSync(tempRestorePath, { recursive: true });
+    // }
     
     // Extract the old version to the temporary directory
-    const archivePath = await git.createArchive(commitHash);
+    // const archivePath = await git.createArchive(commitHash);
     
     // Extract the zip file
-    const extract = require('extract-zip');
-    await extract(archivePath, { dir: tempRestorePath });
+    // const extract = require('extract-zip');
+    // await extract(archivePath, { dir: tempRestorePath });
     
     // Copy files from temp directory to repo (excluding .git)
-    const copyDir = (src, dest) => {
-      const files = fs.readdirSync(src);
-      files.forEach(file => {
-        const srcPath = path.join(src, file);
-        const destPath = path.join(dest, file);
+    // const copyDir = (src, dest) => {
+    //   const files = fs.readdirSync(src);
+    //   files.forEach(file => {
+    //     const srcPath = path.join(src, file);
+    //     const destPath = path.join(dest, file);
         
-        if (file === '.git') return; // Skip git directory
+    //     if (file === '.git') return; // Skip git directory
         
-        const stat = fs.statSync(srcPath);
-        if (stat.isDirectory()) {
-          if (!fs.existsSync(destPath)) {
-            fs.mkdirSync(destPath, { recursive: true });
-          }
-          copyDir(srcPath, destPath);
-        } else {
-          fs.copyFileSync(srcPath, destPath);
-        }
-      });
-    };
+    //     const stat = fs.statSync(srcPath);
+    //     if (stat.isDirectory()) {
+    //       if (!fs.existsSync(destPath)) {
+    //         fs.mkdirSync(destPath, { recursive: true });
+    //       }
+    //       copyDir(srcPath, destPath);
+    //     } else {
+    //       fs.copyFileSync(srcPath, destPath);
+    //     }
+    //   });
+    // };
     
     // Replace current files with files from the old version
-    copyDir(tempRestorePath, repoPath);
+    // copyDir(tempRestorePath, repoPath);
     
     // Create a new commit
-    await git.commitAbletonUpdate(userId, message || `Restored to version with hash: ${commitHash}`);
+    await git.restoreCommit(commitHash, userId, message || `Restored to version with hash: ${commitHash}`);
     
     // Clean up temporary directory
-    fs.rmSync(tempRestorePath, { recursive: true, force: true });
+    // fs.rmSync(tempRestorePath, { recursive: true, force: true });
     
     res.status(200).json({ 
       message: "Version restored successfully", 
