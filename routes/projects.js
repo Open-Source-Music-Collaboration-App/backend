@@ -8,7 +8,7 @@ const fs = require("fs");
 // Create a new project
 projectsRouter.post("/", async (req, res) => {
   try {
-    const { userId, title, hashtags } = req.body;
+    const { userId, title, hashtags, description } = req.body;
     console.log("Received request body:", req.body);
     
     if (!userId) {

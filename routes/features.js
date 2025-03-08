@@ -4,23 +4,6 @@ const supabase = require("../services/supabase");
 const { REPOSITORY_PATH } = require("../config/init");
 const fs = require("fs");
 const { create } = require("domain");
-featuresRouter.get("/reset", async (req, res) => {
-  console.log("resetting schema");
-  try {
-    const { error } = await supabase.rpc("clear_schema_cache", {});
-
-    console.log(error);
-    if (error) {
-      console.error("Error clearing schema cache:", error);
-    } else {
-      console.log("Supabase schema cache cleared successfully.");
-    }
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Failed to delete feature", details: err.message });
-  }
-});
 
 // Create a new feature
 featuresRouter.post("/", async (req, res) => {
@@ -60,6 +43,7 @@ featuresRouter.post("/", async (req, res) => {
       .select()
       .limit(1)
       .single();
+
 
     if (error) {
       console.error("Supabase error:", error);
@@ -137,14 +121,23 @@ featuresRouter.put("/:feature_id", async (req, res) => {
 
 featuresRouter.delete("/:feature_id", async (req, res) => {
   try {
-    const { id } = req.params.feature_id;
 
+    console.log("deleting feature");
+    const id = req.params.feature_id;
+
+    console.log("id", id);
+
+    if (!id) {
+      return res.status(400).json({ error: "Missing required feature_id" });
+    }
     const { data, error } = await supabase
       .from("Feature")
       .delete()
-      .eq("id", feature_id)
+      .eq("id", id)
       .select()
       .single();
+
+    console.log("data", data);
 
     if (error) {
       console.error("Supabase error:", error);
@@ -172,7 +165,10 @@ featuresRouter.get("/project/:projectId", async (req, res) => {
     console.log(project_id);
     const { data, error } = await supabase
       .from("Feature")
-      .select("*")
+      .select(`
+        *,
+        User(id, name)
+      `)
       .eq("project_id", project_id)
       .order("updated_at", { ascending: false });
 
