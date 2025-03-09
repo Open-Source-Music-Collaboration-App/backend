@@ -159,13 +159,14 @@ async function createGitHandler(basedir) {
     /**
      * Restores working directory to the state in the specified commit
      * Revert all changes from <hash>..HEAD
-     * @param {*} hash - the hash to revert to
+     * @param {*} startHash - the hash to revert to
      * @param {*} userId - the id associated with owner
      * @param {String} message - the message for commit
      */
-    const restoreCommit = async (hash, userId, message) => {
+    const restoreCommit = async (startHash, userId, message) => {
         try {
-            const objType = await git.catFile(['-t', hash]);
+            console.log(startHash)
+            const objType = await git.catFile(['-t', startHash]);
             if (objType.trim() !== 'commit') {
                 return;
             }
@@ -174,9 +175,23 @@ async function createGitHandler(basedir) {
             return;
         }
 
+        const log = await git.log();
+        const hashes = log.all.map(commit => commit.hash).reverse();
+        const startIdx = hashes.findIndex(hash => hash === startHash) + 1;
+
+        const commitsToRevert = hashes.slice(startIdx);
+
+        console.log("LOGGING===============")
+        for (const hash of commitsToRevert) {
+            console.log(hash);
+        }
+        console.log("LOGGING===============")
+
         try {
             console.log('Reverting');
-            await git.revert(`${hash}..HEAD`, ['--no-commit']);
+            for (const hash of commitsToRevert) {
+                await git.raw('revert', hash, '--no-commit');
+            }
             
         } catch (e) {
             console.log('git revert failed:', e);
