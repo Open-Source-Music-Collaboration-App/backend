@@ -175,18 +175,6 @@ async function createGitHandler(basedir) {
             return;
         }
 
-        const log = await git.log();
-        const hashes = log.all.map(commit => commit.hash).reverse();
-        const startIdx = hashes.findIndex(hash => hash === startHash) + 1;
-
-        const commitsToRevert = hashes.slice(startIdx);
-
-        console.log("LOGGING===============")
-        for (const hash of commitsToRevert) {
-            console.log(hash);
-        }
-        console.log("LOGGING===============")
-
         try {
             console.log('Reverting');
 
