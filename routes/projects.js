@@ -72,27 +72,6 @@ projectsRouter.get("/:projectId", async (req, res) => {
     // send tmp/repositories/projectId/<file>.als
     // send tmp/repositories/projectId/ableton_project.json
     // send tmp/repositories/projectId/tracks/*.wav
-    
-    const repoPath = `${REPOSITORY_PATH}/${projectId}`;
-    const projectFilePath = `${repoPath}/ableton_project.json`;
-    const projectFileExists = fs.existsSync(projectFilePath);
-    console.log("Project file exists:", projectFileExists);
-    if (projectFileExists) {
-      const projectFileContent = fs.readFileSync(projectFilePath, 'utf8');
-      data.projectFile = JSON.parse(projectFileContent);
-    }
-    const alsFiles = fs.readdirSync(repoPath).filter(file => file.endsWith('.als'));
-    // console.log("ALS files:", alsFiles[0]);
-    data.alsFile = alsFiles[0];
-    // In the GET /:projectId route handler
-    const tracksDir = `${repoPath}/tracks`;
-
-    if (fs.existsSync(tracksDir)) {
-      const tracks = fs.readdirSync(tracksDir).filter(file => 
-        file.endsWith('.wav') || file.endsWith('.flac')
-      );
-      data.tracks = tracks;
-    }
         
 
 

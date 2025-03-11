@@ -8,6 +8,7 @@ const uploadRouter = require("./routes/upload");
 const historyRouter = require("./routes/history");
 const featuresRouter = require("./routes/features");
 const commentsRouter = require("./routes/comments");
+const adminRouter = require("./routes/admin");
 const { init } = require("./config/init");
 
 init();
@@ -73,6 +74,8 @@ app.use("/api/history", historyRouter);
 app.use("/api/features", featuresRouter);
 
 app.use("/api/comments", commentsRouter);
+
+app.use("/api/admin", adminRouter);
 
 module.exports = app;
 
