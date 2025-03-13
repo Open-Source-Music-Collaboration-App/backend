@@ -14,7 +14,7 @@ featuresRouter.post("/", async (req, res) => {
       message,
       description,
       label,
-      open = True,
+      open = true,
       // When user creates a new feature, set the creation and updating time
       created_at = new Date(),
       updated_at = new Date(),
@@ -183,7 +183,7 @@ featuresRouter.get("/project/:projectId", async (req, res) => {
 
 featuresRouter.get("/:feature_id", async (req, res) => {
   try {
-    const { id } = req.params.feature_id;
+    const id = req.params.feature_id;
 
     const { data, error } = await supabase
       .from("Feature")

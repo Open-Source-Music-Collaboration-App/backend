@@ -10,3 +10,4 @@ uploads/
 tmp
 routes/venv
 routes/requirements.txt
+.DS_Store
