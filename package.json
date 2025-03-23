@@ -4,7 +4,7 @@
   "description": "Express.js server for CS506 Open Source Music Collaboration Project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "NODE_ENV=test jest",
     "dev": "nodemon --ignore tmp index.js"
   },
   "author": "Sooraj Gupta",
@@ -33,6 +33,7 @@
   "devDependencies": {
     "@eslint/js": "^9.20.0",
     "eslint": "^9.20.0",
-    "globals": "^15.14.0"
+    "globals": "^15.14.0",
+    "jest": "^29.7.0"
   }
 }

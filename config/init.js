@@ -1,8 +1,11 @@
 const fs = require("fs");
 const path = require("node:path");
 const { initGit } = require("../services/git");
+require('dotenv').config()
 
-const REPOSITORY_PATH = path.resolve(".", "tmp", "repositories");
+const REPOSITORY_PATH = process.env.NODE_ENV !== 'test'
+  ? path.resolve(".", "tmp", "repositories")
+  : path.resolve(".", "tmp", "test_repositories");
 const UPLOAD_PATH = path.resolve(".", "tmp", "uploads");
 const ARCHIVE_PATH = path.resolve(".", "tmp", "archives");
 const FEATURE_PATH = path.resolve(".", "tmp", "features");
