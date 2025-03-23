@@ -1,25 +1,79 @@
 const { createGitHandler, createAbletonRepo } = require('../services/git');
-const { REPOSITORY_PATH, ARCHIVE_PATH } = require("../config/init");
-const fs = require('fs');
+const { REPOSITORY_PATH } = require("../config/init");
+const fs = require('node:fs');
+const fsp = require('node:fs/promises');
 const path = require('path');
+const { simpleGit } = require('simple-git');
 
 /**
  * One time setup to ensure REPOSITORY_PATH exists
  */
-beforeAll(() => {
+beforeAll(async () => {
+    console.log('running beforeAll');
     // Ensure test directory exists
-    if (fs.existsSync(REPOSITORY_PATH)) {
+    if (!fs.existsSync(REPOSITORY_PATH)) {
         fs.mkdirSync(REPOSITORY_PATH, { recursive: true });
+    }   
+
+    // Ensure empty directory
+    const files = fs.readdirSync(REPOSITORY_PATH, { withFileTypes: true });
+    if (files.length != 0) {
+        await Promise.all(files.map(file => fsp.rm(path.join(REPOSITORY_PATH, file.name), { recursive: true })))
     }
-
-
+    console.log('completed beforeAll');
 })
 
-test('create ableton repo', async () => {
-    const userId = 11111111;
-    const songId = "1";
-    await createAbletonRepo(userId, songId);
+/**
+ * Only test createAbletonRepo(userId, songId)
+ */
+describe('creating ableton repos', () => {
+    let userId;
+    beforeAll(() => {
+        userId = 11111111;
+    })
 
-    const result = fs.existsSync(path.join(REPOSITORY_PATH, songId));
-    expect(result).toBeTruthy();
+    test('create single ableton repo', async () => {
+        let songId = "1";
+        await createAbletonRepo(userId, songId);
+        const repo_path = path.join(REPOSITORY_PATH, songId);
+
+        const doesExists = fs.existsSync(repo_path);
+        expect(doesExists).toBeTruthy();
+
+        const git = simpleGit(repo_path);
+        const isRepo = await git.checkIsRepo("root");
+        expect(isRepo).toBeTruthy();
+
+    })
+
+    test('create multiple ableton repo', async () => {
+        const max_repos = 5
+        let songId;
+
+        const promises = []
+        for (let i = 2; i < max_repos; i++) {
+            songId = String(i);
+            promises.push(createAbletonRepo(userId, songId));
+        }
+        await Promise.all(promises);
+
+        for (let i = 2; i < max_repos; i++) {
+            let repo_path = path.join(REPOSITORY_PATH, String(i))
+            const doesExists = fs.existsSync(repo_path);
+            expect(doesExists).toBeTruthy();
+    
+            const git = simpleGit(repo_path);
+            const isRepo = await git.checkIsRepo("root");
+            expect(isRepo).toBeTruthy();
+        }
+
+    })
+})
+
+
+afterAll(async () => {
+    console.log('running afterAll');
+    // Remove test directory
+    await fsp.rm(REPOSITORY_PATH, { recursive: true });
+    console.log('completed afterAll');
 })
