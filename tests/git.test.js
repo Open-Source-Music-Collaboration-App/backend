@@ -26,13 +26,13 @@ beforeAll(async () => {
 /**
  * Only test createAbletonRepo(userId, songId)
  */
-describe('creating ableton repos', () => {
+describe('creating', () => {
     let userId;
     beforeAll(() => {
         userId = 11111111;
     })
 
-    test('create single ableton repo', async () => {
+    test('single ableton repo', async () => {
         let songId = "1";
         await createAbletonRepo(userId, songId);
         const repo_path = path.join(REPOSITORY_PATH, songId);
@@ -46,7 +46,25 @@ describe('creating ableton repos', () => {
 
     })
 
-    test('create multiple ableton repo', async () => {
+    test('multiple ableton repo sequentially', async () => {
+        const max_repos = 5
+        let songId;
+
+        for (let i = 2; i < max_repos; i++) {
+            songId = String(i);
+            await createAbletonRepo(userId, songId);
+
+            let repo_path = path.join(REPOSITORY_PATH, String(i))
+            const doesExists = fs.existsSync(repo_path);
+            expect(doesExists).toBeTruthy();
+    
+            const git = simpleGit(repo_path);
+            const isRepo = await git.checkIsRepo("root");
+            expect(isRepo).toBeTruthy();
+        }
+    })
+
+    test('multiple ableton repo concurrently', async () => {
         const max_repos = 5
         let songId;
 
@@ -66,7 +84,6 @@ describe('creating ableton repos', () => {
             const isRepo = await git.checkIsRepo("root");
             expect(isRepo).toBeTruthy();
         }
-
     })
 })
 
