@@ -158,6 +158,23 @@ describe('using git handler', () => {
     })
 })
 
+test('to revert to a previous commit', async () => {
+  // Get commit history
+  const history = await gitHandler.getCommitHistory();
+  const targetCommit = history[1].hash; // Second most recent commit
+  
+  // Revert to that commit
+  await gitHandler.revertToCommit(targetCommit);
+  
+  // Check that the file created in the latest commit is now gone
+  const newFileExists = fs.existsSync(path.join(repo_path, "newfile.txt"));
+  expect(newFileExists).toBeFalsy();
+  
+  // But files from earlier commits should still exist
+  const oldFileExists = fs.existsSync(path.join(repo_path, "file0.txt"));
+  expect(oldFileExists).toBeTruthy();
+})
+
 afterAll(async () => {
     console.log('running afterAll');
     // Remove test directory
