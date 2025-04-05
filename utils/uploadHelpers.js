@@ -22,11 +22,6 @@ const createConfiguredBusBoy = (req, res) => {
     let { filename, encoding, mimeType } = fileInfo;
     console.log("Receiving file:", filename);
 
-    // Rename "blob" -> "metadata.json" if desired
-    if (filename === "blob") {
-      filename = "metadata.json";
-    }
-
     // Collect file data in memory
     const chunks = [];
     fileStream.on("data", (chunk) => {
@@ -46,16 +41,7 @@ const createConfiguredBusBoy = (req, res) => {
   });
 
   bb.on("field", (fieldname, value) => {
-
-
-    // If you're sending jsonData as a single blob field:
-    if (fieldname === "jsonData") {
-      try {
-        jsonData = JSON.parse(value);
-      } catch (err) {
-        return res.status(400).json({ error: "Invalid JSON format" });
-      }
-    }
+    jsonData[fieldname] = value;
   });
 
   bb.on("finish", async () => {
@@ -63,25 +49,20 @@ const createConfiguredBusBoy = (req, res) => {
     if (!files.length) {
       return res.status(400).json({ error: "No files uploaded" });
     }
-
-    //read blob file in uploads folder and parse into userId, projectId, commitMessage
-    const blobFilePath = path.join(UPLOAD_PATH, "metadata.json");
-    if (!fs.existsSync(blobFilePath)) {
-      return;
+    let { userId, projectId, commitMessage } = jsonData;
+    if (!userId || !projectId) {
+      return res.status(400).json({
+        error: "Missing required metadata:",
+        userId: userId,
+        projectId: projectId
+      })
     }
 
+    //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
+    const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
+    const alsFilePath = path.join(UPLOAD_PATH);
+    const repoPath = path.join(REPOSITORY_PATH, projectId);
     try {
-      const blobContent = fs.readFileSync(blobFilePath, "utf8");
-      const blobData = JSON.parse(blobContent);
-      let { userId, projectId, commitMessage } = blobData;
-
-      //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
-      console.log("Parsed blob data:", { userId, projectId, commitMessage });
-      //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
-      const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
-      const alsFilePath = path.join(UPLOAD_PATH);
-      const repoPath = path.join(REPOSITORY_PATH, projectId);
-
       // copy the als file to the repo path it ends with .als
       const alsFileName = files.find(file => file.filename.endsWith('.als')).filename;
       const alsFileSrcPath = path.join(UPLOAD_PATH, alsFileName);
@@ -103,7 +84,7 @@ const createConfiguredBusBoy = (req, res) => {
       } catch (error) {
         console.log('Error executing script:', error);
         res.status(500).json({
-          message: "Error executing parser script", 
+          message: "Error executing parser script",
           files,
           jsonData,
         })
@@ -128,9 +109,9 @@ const createConfiguredBusBoy = (req, res) => {
         jsonData,
       });
     } catch (err) {
-      console.error("Error reading blob file:", err);
+      console.error("Error:", err);
       res.status(500).json({
-        message: "Error reading blob files", 
+        message: err,
         files,
         jsonData,
       })
