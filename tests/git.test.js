@@ -158,23 +158,126 @@ describe('using git handler', () => {
     })
 })
 
+// This test is to check the commit history and revert to a previous commit
+// it works by checking the commit history and then reverting to a previous commit
+// then checking if the commit hash matches the expected previous commit hash
+// and also the files in the repository are reverted to the state of that commit
 test('to revert to a previous commit', async () => {
-  // Get commit history
-  const history = await gitHandler.getCommitHistory();
-  const targetCommit = history[1].hash; // Second most recent commit
-  
-  // Revert to that commit
-  await gitHandler.revertToCommit(targetCommit);
-  
-  // Check that the file created in the latest commit is now gone
-  const newFileExists = fs.existsSync(path.join(repo_path, "newfile.txt"));
-  expect(newFileExists).toBeFalsy();
-  
-  // But files from earlier commits should still exist
-  const oldFileExists = fs.existsSync(path.join(repo_path, "file0.txt"));
-  expect(oldFileExists).toBeTruthy();
-})
+  let songId = '1';
+  const repo_path = path.join(REPOSITORY_PATH, songId); // Define repo_path here
+  const content = `Some random text`;
+  const promises = [];
+  const files = Array.from({ length: 3 }, (_, i) => `file${i}.txt`);
+  files.forEach(file => {
+      const filePath = path.join(repo_path, file);
+      promises.push(fsp.writeFile(filePath, content));
+  })
+  try {
+      await Promise.all(promises);
+  } catch (e) {
+      console.error("Failed to create files:", e);
+      throw e;
+  }
 
+  const userId = "11111111";
+  const commitMessage = "Init commit";
+  const trackChanges = null;
+
+  // Initialize git handler
+  const gitHandler = await createGitHandler(repo_path);
+  const git = simpleGit(repo_path);
+  if (!gitHandler) {
+      throw new Error("Failed to create git handler");
+  }
+  // Ensure the repository is initialized
+  const isRepo = await git.checkIsRepo("root");
+  expect(isRepo).toBeTruthy();
+
+  await gitHandler.commitAbletonUpdate(userId, commitMessage, trackChanges);
+
+  const log = await git.log();
+
+  // Expects a single commit
+  expect(log.all.length).toBe(1);
+  expect(log.latest).toBe(log.all[0]);
+
+  // Check commit metadata
+  const commitMetadata = log.latest;
+  expect(commitMetadata.message).toBe(commitMessage);
+  expect(commitMetadata.author_name).toMatch(userId);
+
+  // Check added files in commit
+  const showOutput = await git.show();
+  const regexp = /file[0-2]\.txt/g;
+  const matchedFiles = [...new Set([...showOutput.matchAll(regexp)].map(match => match[0]))]
+  expect(matchedFiles.sort()).toEqual(files.sort());
+
+  //get the first commit hash
+  const firstCommitHash = log.latest.hash;
+
+  //modify the files
+  const content2 = `Some different random text`;
+  const promises2 = [];
+  files.forEach(file => {
+      const filePath = path.join(repo_path, file);
+      promises2.push(fsp.writeFile(filePath, content2));
+  })
+  try {
+      await Promise.all(promises2);
+  } catch (e) {
+      console.error("Failed to create files:", e);
+      throw e;
+  }
+
+  const commitMessage2 = "Second commit";
+  await gitHandler.commitAbletonUpdate(userId, commitMessage2, trackChanges);
+
+  const log2 = await git.log();
+
+  // Expects two commits
+  expect(log2.all.length).toBe(2);
+  expect(log2.latest).toBe(log2.all[0]);
+
+  // Check commit metadata
+  const commitMetadata2 = log2.latest;
+  expect(commitMetadata2.message).toBe(commitMessage2);
+  expect(commitMetadata2.author_name).toMatch(userId);
+
+  // Check added files in commit
+  const showOutput2 = await git.show();
+  const regexp2 = /file[0-2]\.txt/g;
+  const matchedFiles2 = [...new Set([...showOutput2.matchAll(regexp2)].map(match => match[0]))]
+  expect(matchedFiles2.sort()).toEqual(files.sort());
+
+  //revert to the first commit
+  await git.checkout(firstCommitHash);
+
+  //get the log after revert
+  const log3 = await git.log();
+
+  //check if the latest commit is the first commit
+  expect(log3.latest.hash).toBe(firstCommitHash);
+
+  //check if the files are reverted to the first commit
+  const showOutput3 = await git.show();
+  const regexp3 = /file[0-2]\.txt/g;
+  const matchedFiles3 = [...new Set([...showOutput3.matchAll(regexp3)].map(match => match[0]))]
+  expect(matchedFiles3.sort()).toEqual(files.sort());
+
+  //check if the content of the files are reverted to the first commit
+  const promises3 = [];
+  files.forEach(file => {
+      const filePath = path.join(repo_path, file);
+      promises3.push(fsp.readFile(filePath, 'utf8'));
+  })
+
+  const contents = await Promise.all(promises3);
+  contents.forEach(content => {
+      expect(content).toBe(`Some random text`);
+  })
+
+
+})
 afterAll(async () => {
     console.log('running afterAll');
     // Remove test directory
