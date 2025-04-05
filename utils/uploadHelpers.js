@@ -2,9 +2,10 @@ const busboy = require("busboy");
 const fs = require("fs");
 const path = require("path");
 const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
-const { exec } = require("child_process");
 const { createGitHandler } = require("../services/git");
 const { compareTrackChanges } = require('../utils/trackComparison');
+const util = require('node:util');
+const exec = util.promisify(require('node:child_process').exec);
 
 /**
  * 
@@ -57,7 +58,7 @@ const createConfiguredBusBoy = (req, res) => {
     }
   });
 
-  bb.on("finish", () => {
+  bb.on("finish", async () => {
 
     if (!files.length) {
       return res.status(400).json({ error: "No files uploaded" });
@@ -65,71 +66,74 @@ const createConfiguredBusBoy = (req, res) => {
 
     //read blob file in uploads folder and parse into userId, projectId, commitMessage
     const blobFilePath = path.join(UPLOAD_PATH, "metadata.json");
-    if (fs.existsSync(blobFilePath)) {
+    if (!fs.existsSync(blobFilePath)) {
+      return;
+    }
+
+    try {
+      const blobContent = fs.readFileSync(blobFilePath, "utf8");
+      const blobData = JSON.parse(blobContent);
+      let { userId, projectId, commitMessage } = blobData;
+
+      //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
+      console.log("Parsed blob data:", { userId, projectId, commitMessage });
+      //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
+      const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
+      const alsFilePath = path.join(UPLOAD_PATH);
+      const repoPath = path.join(REPOSITORY_PATH, projectId);
+
+      // copy the als file to the repo path it ends with .als
+      const alsFileName = files.find(file => file.filename.endsWith('.als')).filename;
+      const alsFileSrcPath = path.join(UPLOAD_PATH, alsFileName);
+      const alsFileDestPath = path.join(repoPath, alsFileName);
+
+      const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
+
+      //before executing the command, store the current ableton_project.json
+      const previousJsonPath = path.join(repoPath, 'ableton_project.json');
+      let previousJson = null;
+      if (fs.existsSync(previousJsonPath)) {
+        previousJson = fs.readFileSync(previousJsonPath, 'utf8');
+      }
+
       try {
-        const blobContent = fs.readFileSync(blobFilePath, "utf8");
-        const blobData = JSON.parse(blobContent);
-        let { userId, projectId, commitMessage } = blobData;
-
-        //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
-        console.log("Parsed blob data:", { userId, projectId, commitMessage });
-        //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
-        const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
-        const alsFilePath = path.join(UPLOAD_PATH);
-        const repoPath = path.join(REPOSITORY_PATH, projectId);
-
-        // copy the als file to the repo path it ends with .als
-        const alsFileName = files.find(file => file.filename.endsWith('.als')).filename;
-        const alsFileSrcPath = path.join(UPLOAD_PATH, alsFileName);
-        const alsFileDestPath = path.join(repoPath, alsFileName);
-
-        const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
-
-        //before executing the command, store the current ableton_project.json
-        const previousJsonPath = path.join(repoPath, 'ableton_project.json');
-        let previousJson = null;
-        if (fs.existsSync(previousJsonPath)) {
-          previousJson = fs.readFileSync(previousJsonPath, 'utf8');
-        }
-
-        console.log("Executing command:", command);
-        exec(command, async (error, stdout, stderr) => {
-          if (error) {
-            console.error("Error executing script:", error);
-            return;
-          }
-          console.log("Script output:", stdout);
-          console.error("Script error output:", stderr);
-
-          const repoPath = path.join(REPOSITORY_PATH, projectId);
-          const git = await createGitHandler(repoPath);
-
-
-          // Get current ableton_project.json
-          const currentJsonPath = path.join(repoPath, 'ableton_project.json');
-          const currentJson = fs.readFileSync(currentJsonPath, 'utf8');
-
-          // Compare versions and detect changes
-          let trackChanges = null;
-          if (previousJson) {
-            trackChanges = compareTrackChanges(previousJson, currentJson);
-          }
-
-          fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
-          git.commitAbletonUpdate(userId, commitMessage, trackChanges);
-        });
-
-        res.status(201).json({
-          message: "Files uploaded successfully",
+        const { stdout, stderr } = await exec(command);
+        console.log('Script output:', stdout);
+        console.log('Script error output:', stderr);
+      } catch (error) {
+        console.log('Error executing script:', error);
+        res.status(500).json({
+          message: "Error executing parser script", 
           files,
           jsonData,
-        });
-
-
-
-      } catch (err) {
-        console.error("Error reading blob file:", err);
+        })
       }
+      const git = await createGitHandler(repoPath);
+
+      // Get current ableton_project.json
+      const currentJsonPath = path.join(repoPath, 'ableton_project.json');
+      const currentJson = fs.readFileSync(currentJsonPath, 'utf8');
+
+      // Compare versions and detect changes
+      let trackChanges = null;
+      if (previousJson) {
+        trackChanges = compareTrackChanges(previousJson, currentJson);
+      }
+
+      fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
+      git.commitAbletonUpdate(userId, commitMessage, trackChanges);
+      res.status(201).json({
+        message: "Files uploaded successfully",
+        files,
+        jsonData,
+      });
+    } catch (err) {
+      console.error("Error reading blob file:", err);
+      res.status(500).json({
+        message: "Error reading blob files", 
+        files,
+        jsonData,
+      })
     }
 
   });
