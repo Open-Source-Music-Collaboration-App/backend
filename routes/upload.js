@@ -5,7 +5,7 @@ const path = require("path");
 const { exec } = require("child_process");
 const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
 const { createGitHandler } = require("../services/git");
-const { compareTrackChanges } = require('../utils/trackComparison');
+const { compareTrackChanges, getDetailedProjectDiff } = require('../utils/trackComparison');
 
 
 const uploadRouter = express.Router();
@@ -125,6 +125,24 @@ uploadRouter.post("/", (req, res) => {
           if (previousJson) {
             trackChanges = compareTrackChanges(previousJson, currentJson);
           }
+
+          if( !trackChanges || trackChanges.length === 0) {
+            console.log("No changes detected in the project.");
+            return res.status(200).json({
+              message: "No changes detected, no commit made.",
+              files,
+              jsonData,
+            });
+          }
+
+          // If changes detected, get detailed project diff
+          const detailedDiff = getDetailedProjectDiff(previousJson, currentJson);
+          console.log("Detailed project diff:", detailedDiff);
+
+          //create a file called diff.json in the repoPath
+          const diffFilePath = path.join(repoPath, 'diff.json');
+          fs.writeFileSync(diffFilePath, JSON.stringify(detailedDiff, null, 2));
+          console.log("Detailed diff saved to:", diffFilePath);
         
           fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
           git.commitAbletonUpdate(userId, commitMessage, trackChanges);
