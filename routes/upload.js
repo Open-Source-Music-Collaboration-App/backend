@@ -25,9 +25,6 @@ uploadRouter.post("/", (req, res) => {
     console.error("Error cleaning up upload directory:", err);
   }
 
-
-
-
   req.pipe(bb);
 });
 
