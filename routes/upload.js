@@ -104,7 +104,6 @@ uploadRouter.post("/", (req, res) => {
         }
 
         console.log("fetched previous ableton_project.json");
-        // console.log(previousJson);
         
         console.log("Executing command:", command);
       exec(command, async (error, stdout, stderr) => {
