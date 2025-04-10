@@ -21,7 +21,7 @@ describe("using diff handler", () => {
           focus: 'balanced'
       };
       
-      const commitMessage = await generateCommitMessage(diff, commitOptions);
+      const commitMessage = await generateCommitMessage(diff.llmSummary, commitOptions);
       expect(commitMessage).toBeDefined();
       //print the commit message
       console.log(commitMessage);
