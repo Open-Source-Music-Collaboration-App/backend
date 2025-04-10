@@ -95,6 +95,15 @@ class DiffEngine {
      * @returns {Object} Detailed diff with all changes
      */
     createDetailedDiff(oldVersion, newVersion) {
+
+      //make oldversion into a json object
+      if (typeof oldVersion === 'string') {
+        oldVersion = JSON.parse(oldVersion);
+      }
+      //make newversion into a json object
+      if (typeof newVersion === 'string') {
+        newVersion = JSON.parse(newVersion);
+      } 
         // Initialize result object
         const result = {
             summary: {

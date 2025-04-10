@@ -102,6 +102,9 @@ uploadRouter.post("/", (req, res) => {
         if (fs.existsSync(previousJsonPath)) {
           previousJson = fs.readFileSync(previousJsonPath, 'utf8');
         }
+
+        console.log("fetched previous ableton_project.json");
+        // console.log(previousJson);
         
         console.log("Executing command:", command);
       exec(command, async (error, stdout, stderr) => {
