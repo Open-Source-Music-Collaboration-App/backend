@@ -131,14 +131,13 @@ const createConfiguredBusBoy = (req, res) => {
         
           fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
           git.commitAbletonUpdate(userId, commitMessage, trackChanges);
-        });
 
-        res.status(201).json({
-          message: "Files uploaded successfully",
-          files,
-          jsonData,
+          res.status(201).json({
+            message: "Files uploaded successfully",
+            files,
+            jsonData,
+          });
         });
-
 
 
       } catch (err) {
