@@ -210,77 +210,105 @@ const diffEngine = new DiffEngine();
 /**
  * MIDI Note Comparator - Detects changes in MIDI note positions and durations
  */
+/**
+ * MIDI Note Comparator - Simplified to just track added and removed notes
+ */
 diffEngine.registerTrackComparator({
-    type: 'noteChanges',
-    compare: (oldTrack, newTrack, trackName) => {
-        const changes = [];
-        
-        // Skip if either track doesn't have events or notes
-        if (!oldTrack.events || !newTrack.events) return changes;
-        
-        oldTrack.events.forEach(oldEvent => {
-            if (!oldEvent.notes) return;
-            
-            // Find matching event in newTrack based on position
-            const matchingNewEvents = newTrack.events.filter(e => 
-                // Similar event position (with some tolerance for slight changes)
-                Math.abs(parseFloat(e.start) - parseFloat(oldEvent.start)) < 1 &&
-                Math.abs(parseFloat(e.end) - parseFloat(oldEvent.end)) < 1 &&
-                e.notes
-            );
-            
-            matchingNewEvents.forEach(matchingNewEvent => {
-                // Compare notes
-                oldEvent.notes.forEach(oldNote => {
-                    const matchingNewNotes = matchingNewEvent.notes.filter(n => 
-                        n.key.Value === oldNote.key.Value
-                    );
-                    
-                    matchingNewNotes.forEach(matchingNewNote => {
-                        // Compare occurrences
-                        oldNote.occurences.forEach((oldOcc, occIndex) => {
-                            // Try to find matching occurrence
-                            const newOcc = matchingNewNote.occurences[occIndex] || 
-                                          matchingNewNote.occurences.find(o => 
-                                            Math.abs(parseFloat(o.start) - parseFloat(oldOcc.start)) < 0.5);
-                            
-                            if (newOcc) {
-                                // Check if the start position changed
-                                if (oldOcc.start !== newOcc.start) {
-                                    const beat1 = parseFloat(oldOcc.start);
-                                    const beat2 = parseFloat(newOcc.start);
-                                    changes.push({
-                                        type: 'position',
-                                        trackName,
-                                        note: oldNote.key.Value,
-                                        from: beat1,
-                                        to: beat2,
-                                        description: `Note ${oldNote.key.Value} moved from beat ${beat1.toFixed(2)} to beat ${beat2.toFixed(2)} in track '${trackName}'`
-                                    });
-                                }
-                                
-                                // Check duration changes
-                                if (oldOcc.duration !== newOcc.duration) {
-                                    const dur1 = parseFloat(oldOcc.duration);
-                                    const dur2 = parseFloat(newOcc.duration);
-                                    changes.push({
-                                        type: 'duration',
-                                        trackName,
-                                        note: oldNote.key.Value,
-                                        from: dur1,
-                                        to: dur2,
-                                        description: `Note ${oldNote.key.Value} duration changed from ${dur1.toFixed(2)} to ${dur2.toFixed(2)} beats in track '${trackName}'`
-                                    });
-                                }
-                            }
-                        });
-                    });
-                });
-            });
-        });
-        
-        return changes;
-    }
+  type: 'noteChanges',
+  compare: (oldTrack, newTrack, trackName) => {
+      const changes = [];
+      
+      // Skip if either track doesn't have events or notes
+      if (!oldTrack.events || !newTrack.events) return changes;
+      
+      // Collect all notes from old track with their positions
+      const oldNotes = [];
+      oldTrack.events.forEach(oldEvent => {
+          if (!oldEvent.notes) return;
+          
+          const eventStart = parseFloat(oldEvent.start);
+          oldEvent.notes.forEach(note => {
+              note.occurences.forEach(occ => {
+                  if (occ.enabled === "false") return;
+                  
+                  const globalBeat = eventStart + parseFloat(occ.start);
+                  oldNotes.push({
+                      eventStart,
+                      beat: globalBeat,
+                      pitch: note.key.Value,
+                      duration: parseFloat(occ.duration),
+                      velocity: parseFloat(occ.velocity)
+                  });
+              });
+          });
+      });
+      
+      // Collect all notes from new track with their positions
+      const newNotes = [];
+      newTrack.events.forEach(newEvent => {
+          if (!newEvent.notes) return;
+          
+          const eventStart = parseFloat(newEvent.start);
+          newEvent.notes.forEach(note => {
+              note.occurences.forEach(occ => {
+                  if (occ.enabled === "false") return;
+                  
+                  const globalBeat = eventStart + parseFloat(occ.start);
+                  newNotes.push({
+                      eventStart,
+                      beat: globalBeat,
+                      pitch: note.key.Value,
+                      duration: parseFloat(occ.duration),
+                      velocity: parseFloat(occ.velocity)
+                  });
+              });
+          });
+      });
+      
+      // Find removed notes (in old but not in new)
+      oldNotes.forEach(oldNote => {
+          // Try to find a matching note in the new track
+          const matchFound = newNotes.some(newNote => 
+              // Match on position, pitch, and similar duration
+              Math.abs(newNote.beat - oldNote.beat) < 0.1 && 
+              newNote.pitch === oldNote.pitch &&
+              Math.abs(newNote.duration - oldNote.duration) < 0.1
+          );
+          
+          if (!matchFound) {
+              changes.push({
+                  type: 'noteRemoved',
+                  trackName,
+                  note: oldNote.pitch,
+                  beat: oldNote.beat,
+                  description: `Note ${oldNote.pitch} at beat ${oldNote.beat.toFixed(2)} was removed from track '${trackName}'`
+              });
+          }
+      });
+      
+      // Find added notes (in new but not in old)
+      newNotes.forEach(newNote => {
+          // Try to find a matching note in the old track
+          const matchFound = oldNotes.some(oldNote => 
+              // Match on position, pitch, and similar duration
+              Math.abs(newNote.beat - oldNote.beat) < 0.1 && 
+              newNote.pitch === oldNote.pitch &&
+              Math.abs(newNote.duration - oldNote.duration) < 0.1
+          );
+          
+          if (!matchFound) {
+              changes.push({
+                  type: 'noteAdded',
+                  trackName,
+                  note: newNote.pitch,
+                  beat: newNote.beat,
+                  description: `Note ${newNote.pitch} at beat ${newNote.beat.toFixed(2)} was added to track '${trackName}'`
+              });
+          }
+      });
+      
+      return changes;
+  }
 });
 
 /**

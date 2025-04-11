@@ -11,6 +11,8 @@ const uploadRouter = express.Router();
 
 uploadRouter.post("/", (req, res) => {
  
+  // Call busboy() as a function:
+  const bb = createConfiguredBusBoy(req, res);
   
   //remove all files in UPLOAD_PATH folder  
   try {
@@ -23,8 +25,6 @@ uploadRouter.post("/", (req, res) => {
     console.error("Error cleaning up upload directory:", err);
   }
   
-  // Call busboy() as a function:
-  const bb = createConfiguredBusBoy(req, res);
   
   req.pipe(bb);
 });

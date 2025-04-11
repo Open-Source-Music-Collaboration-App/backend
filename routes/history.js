@@ -134,6 +134,18 @@ historyRouter.get('/latest/:userId/:projectId', async (req, res) => {
   }
 })
 
+/**
+ * Returns the diff.json JSON file for a specific commit
+ */
+historyRouter.get('/diff/:userId/:projectId/:commitHash', async (req, res) => {
+  const { userId, projectId, commitHash } = req.params;
+  const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
+
+  const diffJSON = await git.getDiffJSON(commitHash);
+  console.log(diffJSON);
+  res.status(200).json(diffJSON);
+});
+
 historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {
   const { userId, projectId, commitHash } = req.params;
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));

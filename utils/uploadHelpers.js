@@ -4,8 +4,7 @@ const path = require("path");
 const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
 const { createGitHandler } = require("../services/git");
 const { compareTrackChanges, getDetailedProjectDiff } = require("../utils/trackComparison");
-const util = require('node:util');
-const exec = util.promisify(require('node:child_process').exec);
+const { exec } = require("child_process");
 
 /**
  * 
@@ -22,11 +21,16 @@ const createConfiguredBusBoy = (req, res) => {
     let { filename, encoding, mimeType } = fileInfo;
     console.log("Receiving file:", filename);
 
+    if (filename === "blob") {
+      filename = "metadata.json";
+    }
+
     // Collect file data in memory
     const chunks = [];
     fileStream.on("data", (chunk) => {
       chunks.push(chunk);
     });
+
 
     fileStream.on("end", () => {
       const fileBuffer = Buffer.concat(chunks);
@@ -37,6 +41,8 @@ const createConfiguredBusBoy = (req, res) => {
 
       files.push({ fieldname, filename, encoding, mimeType, savePath });
 
+      console.log("File saved to:", savePath);
+
     });
   });
 
@@ -46,12 +52,15 @@ const createConfiguredBusBoy = (req, res) => {
 
   bb.on("finish", () => {
 
+    console.log("Upload complete");
+
     if (!files.length) {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
     //read blob file in uploads folder and parse into userId, projectId, commitMessage
     const blobFilePath = path.join(UPLOAD_PATH, "metadata.json");
+    console.log("Blob file path:", blobFilePath);
     if (fs.existsSync(blobFilePath)) {
       try {
         const blobContent = fs.readFileSync(blobFilePath, "utf8");
