@@ -141,9 +141,17 @@ historyRouter.get('/diff/:userId/:projectId/:commitHash', async (req, res) => {
   const { userId, projectId, commitHash } = req.params;
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
 
-  const diffJSON = await git.getDiffJSON(commitHash);
-  console.log(diffJSON);
-  res.status(200).json(diffJSON);
+  try {
+    const diffJSON = await git.getDiffJSON(commitHash);
+    if (!diffJSON) {
+      return res.status(404).json({ error: 'Diff data not found for the specified commit' });
+    }
+    console.log(diffJSON);
+    res.status(200).json(diffJSON);
+  } catch (err) {
+    console.error('Error fetching diff data:', err);
+    res.status(500).json({ error: 'Failed to fetch diff data', details: err.message });
+  }
 });
 
 historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {
