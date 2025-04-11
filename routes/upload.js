@@ -13,7 +13,7 @@ uploadRouter.post("/", (req, res) => {
  
   // Call busboy() as a function:
   const bb = createConfiguredBusBoy(req, res);
-
+  
   //remove all files in UPLOAD_PATH folder  
   try {
     const files = fs.readdirSync(UPLOAD_PATH);
@@ -24,10 +24,8 @@ uploadRouter.post("/", (req, res) => {
   } catch (err) {
     console.error("Error cleaning up upload directory:", err);
   }
-
-
-
-
+  
+  
   req.pipe(bb);
 });
 

@@ -156,6 +156,28 @@ async function createGitHandler(basedir) {
 
     }
 
+
+    /**
+     * Returns the diff.json contents in a given commit
+     * 
+     * @param {*} hash Commit hash
+     * @returns diff.json contents stored in the commit
+     */
+    const getDiffJSON = async (commitHash) => {
+        const objType = await git.catFile(['-t', commitHash]);
+        if (objType.trim() !== 'commit') {
+            return;
+        }
+
+        try {
+            const diffJson = await git.show([`${commitHash}:diff.json`]);
+            return JSON.parse(diffJson);
+        } catch (e) {
+            console.log("Failed to get diff.json:", e);
+            return null;
+        }
+    }
+        
     /**
      * Restores working directory to the state in the specified commit
      * Revert all changes from <hash>..HEAD
@@ -199,7 +221,7 @@ async function createGitHandler(basedir) {
     await initIfNotRepo();
 
     return {
-        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash, restoreCommit
+        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash, restoreCommit, getDiffJSON
     }
 }
 
