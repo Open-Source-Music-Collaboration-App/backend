@@ -99,14 +99,50 @@ const createConfiguredBusBoy = (req, res) => {
       // Get current ableton_project.json
       const currentJsonPath = path.join(repoPath, 'ableton_project.json');
       const currentJson = fs.readFileSync(currentJsonPath, 'utf8');
-
+      
+      // Copy the ALS file to the repository folder regardless of changes
+      fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
+      
       // Compare versions and detect changes
       let trackChanges = null;
+      let isFirstCommit = false;
+      
       if (previousJson) {
         trackChanges = compareTrackChanges(previousJson, currentJson);
+      } else {
+        // This is the first commit, we should proceed regardless
+        isFirstCommit = true;
+        console.log("First commit detected - no previous JSON to compare.");
       }
 
-      if( !trackChanges || trackChanges.length === 0) {
+      // Proceed with commit if there are changes OR if this is the first commit
+      const hasChanges = trackChanges && 
+        (trackChanges.added.length > 0 || 
+        trackChanges.modified.length > 0 || 
+        trackChanges.removed.length > 0);
+
+      if (hasChanges || isFirstCommit) {
+        // If changes detected, get detailed project diff
+        let detailedDiff = null;
+        if (previousJson) {
+          detailedDiff = getDetailedProjectDiff(previousJson, currentJson);
+          console.log("Detailed project diff:", detailedDiff);
+          
+          //create a file called diff.json in the repoPath
+          const diffFilePath = path.join(repoPath, 'diff.json');
+          fs.writeFileSync(diffFilePath, JSON.stringify(detailedDiff, null, 2));
+          console.log("Detailed diff saved to:", diffFilePath);
+        }
+        
+        // Make the commit
+        await git.commitAbletonUpdate(userId, commitMessage, trackChanges);
+        
+        res.status(201).json({
+          message: "Files uploaded successfully",
+          files,
+          jsonData,
+        });
+      } else {
         console.log("No changes detected in the project.");
         return res.status(200).json({
           message: "No changes detected, no commit made.",
@@ -114,22 +150,6 @@ const createConfiguredBusBoy = (req, res) => {
           jsonData,
         });
       }
-
-      // If changes detected, get detailed project diff
-      const detailedDiff = getDetailedProjectDiff(previousJson, currentJson);
-
-      //create a file called diff.json in the repoPath
-      const diffFilePath = path.join(repoPath, 'diff.json');
-      fs.writeFileSync(diffFilePath, JSON.stringify(detailedDiff, null, 2));
-      console.log("Detailed diff saved to:", diffFilePath);
-
-      fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
-      git.commitAbletonUpdate(userId, commitMessage, trackChanges);
-      res.status(201).json({
-        message: "Files uploaded successfully",
-        files,
-        jsonData,
-      });
     }
     catch (err) {
       console.error("Error:", err);
