@@ -22,7 +22,7 @@ aiRouter.post('/generate-commit-message', async (req, res) => {
     // Let's assume ProjectDiff might have an llmText field or similar summary text.
     // If not, trackComparison.js needs to add it, or this needs adjustment.
     // For now, assuming diffSummary *is* the object with llmText:
-    const result = await generateCommitMessage(diffSummary, options || {});
+    const result = await generateCommitMessage(diffSummary.llmSummary, options || {});
 
     if (result.success) {
       res.json(result);

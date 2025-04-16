@@ -105,6 +105,12 @@ Additional guidelines:
 - Use music production terminology rather than software development terms
 - Be specific about track modifications (instruments, effects, arrangements)
 - No need to mention version control concepts
+- be more creative and less technical
+- 100% human-like, no AI or LLM references
+- no code or programming references
+- 100% music production references
+
+Example: "Changed Piano-03 Melody slightly. Increased volume of kick. Shifted Chords-03 up one octave. Changed Synth-01 melody to be more syncopated."
 
 Here's a summary of the changes:
 
