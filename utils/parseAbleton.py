@@ -3,6 +3,8 @@ import json
 import shutil
 import gzip
 import xml.etree.ElementTree as ET
+import argparse # Import argparse
+
 
 def extract_als_data(als_path):
     """Extract and parse Ableton ALS (XML) data from a GZIP file."""
@@ -292,7 +294,7 @@ def move_bounced_tracks(folder_path, tracks_folder, matched_tracks):
                 # If already FLAC, just copy
                 shutil.copy(src_path, dest_path)
 
-def main(folder_path, output_folder=None):
+def main(folder_path, output_folder=None, skip_audio_match=False):
     """Main function to parse the Ableton project and process audio files."""
     als_file = next((f for f in os.listdir(folder_path) if f.endswith(".als")), None)
     if not als_file:
@@ -313,28 +315,34 @@ def main(folder_path, output_folder=None):
     maintrack = root.find("LiveSet").find("MainTrack")
     tempo = maintrack.find("DeviceChain").find("Mixer").find("Tempo").find("Manual").attrib.get("Value", "Unknown")
     
-    # Match tracks with corresponding bounced audio files
-    matched_tracks = match_wav_files(folder_path, als_name, tracks)
+    tracks_to_save = []
+    if skip_audio_match:
+      print("Skipping audio file matching and processing.")
+      tracks_to_save = tracks # Use all parsed tracks direc
     
-    # Validate track count
-    expected_tracks = len(tracks)
-    matched_track_count = len(matched_tracks)
-    print(f"Expected Tracks: {expected_tracks}, Matched Tracks: {matched_track_count}")
-    
-    # Clear and repopulate tracks folder
-    tracks_folder = "./tracks" if not output_folder else os.path.join(output_folder, "tracks")
-    clean_tracks_folder(tracks_folder)
-    
-    # Convert WAV files to FLAC and move them to the tracks folder
-    move_bounced_tracks(folder_path, tracks_folder, matched_tracks)
+    else:
+      # Match tracks with corresponding bounced audio files
+      matched_tracks = match_wav_files(folder_path, als_name, tracks)
+      tracks_to_save = matched_tracks
+      
+      # Validate track count
+      expected_tracks = len(tracks)
+      matched_track_count = len(matched_tracks)
+      print(f"Expected Tracks: {expected_tracks}, Matched Tracks: {matched_track_count}")
+      
+      # Clear and repopulate tracks folder
+      tracks_folder = "./tracks" if not output_folder else os.path.join(output_folder, "tracks")
+      clean_tracks_folder(tracks_folder)
+      
+      # Convert WAV files to FLAC and move them to the tracks folder
+      move_bounced_tracks(folder_path, tracks_folder, matched_tracks)
     
     # Save JSON output
     json_output_path = os.path.join("./" if not output_folder else output_folder, "ableton_project.json")
     with open(json_output_path, "w") as json_file:
-        json.dump({"project": als_name, "tempo": tempo, "tracks": matched_tracks}, json_file, indent=4)
-    
+        json.dump({"project": als_name, "tempo": tempo, "tracks": tracks_to_save}, json_file, indent=4)
+
     print(f"Ableton project parsed and saved to {json_output_path}")
-    print(f"Converted and saved audio files to: {tracks_folder}/")
     
 def migrate_wav_to_flac(repositories_path):
     """Migrate existing WAV files to FLAC in all repositories."""
@@ -388,10 +396,14 @@ def migrate_wav_to_flac(repositories_path):
                 
                 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 2:
-        print("Usage: python parseAbleton.py <folder_path> <optional: output_folder>")
-    else:
-        main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+    # Setup argument parser
+    parser = argparse.ArgumentParser(description="Parse Ableton ALS file and process audio.")
+    parser.add_argument("folder_path", help="Path to the folder containing the .als file (and audio files unless skipping).")
+    parser.add_argument("output_folder", nargs='?', default=None, help="Optional: Path to the output folder for JSON and tracks/.")
+    parser.add_argument("--skip-audio-match", action="store_true", help="Skip matching and processing audio files.")
+
+    args = parser.parse_args()
+
+    main(args.folder_path, args.output_folder, args.skip_audio_match)
         
 
