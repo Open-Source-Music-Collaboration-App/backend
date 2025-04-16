@@ -110,6 +110,10 @@ Additional guidelines:
 - no code or programming references
 - 100% music production references
 
+You will be given some list of changes in a DAW project.
+It is your job to infer that, say a note has been removed at beat 12 and then a note has been added to beat 13, that the note was MOVED from beat 12 to beat 13.
+However if a note has been removed and then a note has been added at beat 13, you should not assume that the note was moved, but rather that it was removed and then added.
+
 Example: "Changed Piano-03 Melody slightly. Increased volume of kick. Shifted Chords-03 up one octave. Changed Synth-01 melody to be more syncopated."
 
 Here's a summary of the changes:
@@ -159,7 +163,7 @@ async function callOpenAI(prompt, options) {
           },
           { role: "user", content: prompt }
         ],
-        temperature: options?.tone === 'casual' ? 0.8 : 0.7, // Slightly higher creativity for casual tone
+        temperature: options?.tone === 'casual' ? 0.8 : 1, // Slightly higher creativity for casual tone
         max_tokens: maxResponseTokens
       },
       {
