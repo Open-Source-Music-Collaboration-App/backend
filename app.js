@@ -10,6 +10,7 @@ const featuresRouter = require("./routes/features");
 const commentsRouter = require("./routes/comments");
 const adminRouter = require("./routes/admin");
 const profileRouter = require("./routes/profile");
+const aiRouter = require("./routes/ai");
 const { init } = require("./config/init");
 
 init();
@@ -79,6 +80,8 @@ app.use("/api/comments", commentsRouter);
 app.use("/api/admin", adminRouter);
 
 app.use("/api/profile", profileRouter);
+
+app.use("/api/ai", aiRouter); 
 
 module.exports = app;
 

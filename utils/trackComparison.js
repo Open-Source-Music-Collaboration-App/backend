@@ -524,19 +524,232 @@ diffEngine.registerTrackComparator({
         
         return changes;
     }
-});
+});/**
+* Generates an LLM-friendly summary of the detailed diff
+* 
+* This creates a concise representation of changes optimized for sending to LLMs,
+* focusing on meaningful patterns while avoiding excessive detail that would 
+* make the input too large for effective processing.
+* 
+* @param {Object} detailedDiff - The full detailed diff object
+* @returns {Object} An LLM-optimized summary of the changes
+*/
+DiffEngine.prototype.generateLLMSummary = function(detailedDiff) {
+ const summary = {
+     projectChanges: [], // High-level changes
+     trackSummaries: {}, // Per-track summaries
+     stats: {           // Statistical aggregation
+         tracksAdded: detailedDiff.summary.addedTracks.length,
+         tracksRemoved: detailedDiff.summary.removedTracks.length,
+         tracksModified: detailedDiff.summary.modifiedTracks.length,
+         totalChanges: detailedDiff.summary.totalChanges
+     }
+ };
+ 
+ // Include added/removed tracks as high-level changes
+ if (detailedDiff.trackAddRemove) {
+     detailedDiff.trackAddRemove.forEach(change => {
+         summary.projectChanges.push(change.description);
+     });
+ }
+ 
+ // Process all modified tracks
+ detailedDiff.summary.modifiedTracks.forEach(trackName => {
+     const trackSummary = {
+         noteChanges: 0,
+         velocityChanges: 0, 
+         parameterChanges: 0,
+         loopChanges: 0,
+         audioChanges: 0,
+         significantChanges: []  // Will contain most important changes for this track
+     };
+     
+     // Count changes by type
+     if (detailedDiff.noteChanges) {
+         const trackNoteChanges = detailedDiff.noteChanges.filter(c => c.trackName === trackName);
+         trackSummary.noteChanges = trackNoteChanges.length;
+         
+         // Group note position changes to detect patterns
+         const positionChanges = trackNoteChanges.filter(c => c.type === 'position');
+         if (positionChanges.length > 3) {
+             // If many notes moved by the same amount, summarize as pattern
+             const shiftAmounts = positionChanges.map(c => c.to - c.from);
+             const avgShift = shiftAmounts.reduce((sum, val) => sum + val, 0) / shiftAmounts.length;
+             
+             if (Math.abs(avgShift) > 0.1) {
+                 const direction = avgShift > 0 ? "later" : "earlier";
+                 trackSummary.significantChanges.push(
+                     `${positionChanges.length} notes moved ${direction} by ~${Math.abs(avgShift).toFixed(2)} beats`
+                 );
+             }
+         } else if (positionChanges.length > 0) {
+             // For fewer changes, include them directly
+             positionChanges.slice(0, 2).forEach(change => {
+                 trackSummary.significantChanges.push(change.description);
+             });
+         }
+         
+         // Do the same for duration changes
+         const durationChanges = trackNoteChanges.filter(c => c.type === 'duration');
+         if (durationChanges.length > 0) {
+             if (durationChanges.length > 3) {
+                 const lengthChanges = durationChanges.map(c => c.to - c.from);
+                 const avgChange = lengthChanges.reduce((sum, val) => sum + val, 0) / lengthChanges.length;
+                 
+                 if (Math.abs(avgChange) > 0.1) {
+                     const direction = avgChange > 0 ? "lengthened" : "shortened";
+                     trackSummary.significantChanges.push(
+                         `${durationChanges.length} notes ${direction} by ~${Math.abs(avgChange).toFixed(2)} beats`
+                     );
+                 }
+             } else {
+                 durationChanges.slice(0, 2).forEach(change => {
+                     trackSummary.significantChanges.push(change.description);
+                 });
+             }
+         }
+     }
+     
+     // Count and summarize velocity changes
+     if (detailedDiff.velocityChanges) {
+         const trackVelocityChanges = detailedDiff.velocityChanges.filter(c => c.trackName === trackName);
+         trackSummary.velocityChanges = trackVelocityChanges.length;
+         
+         if (trackVelocityChanges.length > 3) {
+             const velocityChanges = trackVelocityChanges.map(c => c.to - c.from);
+             const avgChange = velocityChanges.reduce((sum, val) => sum + val, 0) / velocityChanges.length;
+             
+             if (Math.abs(avgChange) > 3) {
+                 const direction = avgChange > 0 ? "increased" : "decreased";
+                 trackSummary.significantChanges.push(
+                     `${trackVelocityChanges.length} note velocities ${direction} by ~${Math.abs(avgChange).toFixed(0)}`
+                 );
+             }
+         } else if (trackVelocityChanges.length > 0) {
+             trackVelocityChanges.slice(0, 2).forEach(change => {
+                 trackSummary.significantChanges.push(change.description);
+             });
+         }
+     }
+     
+     // Count and summarize track parameter changes
+     if (detailedDiff.trackParameterChanges) {
+         const paramChanges = detailedDiff.trackParameterChanges.filter(c => c.trackName === trackName);
+         trackSummary.parameterChanges = paramChanges.length;
+         
+         // Always include parameter changes as they're usually few but significant
+         paramChanges.forEach(change => {
+             trackSummary.significantChanges.push(change.description);
+         });
+     }
+     
+     // Count and summarize loop changes
+     if (detailedDiff.loopChanges) {
+         const loopChanges = detailedDiff.loopChanges.filter(c => c.trackName === trackName);
+         trackSummary.loopChanges = loopChanges.length;
+         
+         loopChanges.forEach(change => {
+             trackSummary.significantChanges.push(change.description);
+         });
+     }
+     
+     // Count and summarize audio file changes
+     if (detailedDiff.audioFileChanges) {
+         const audioChanges = detailedDiff.audioFileChanges.filter(c => c.trackName === trackName);
+         trackSummary.audioChanges = audioChanges.length;
+         
+         audioChanges.forEach(change => {
+             trackSummary.significantChanges.push(change.description);
+         });
+     }
+     
+     // Only add tracks that have significant changes
+     if (trackSummary.significantChanges.length > 0) {
+         summary.trackSummaries[trackName] = trackSummary;
+     }
+ });
+ 
+ // Create a text summary suitable for direct LLM consumption
+ const llmText = this.generateLLMTextSummary(summary);
+ summary.llmText = llmText;
+ 
+ return summary;
+};
+
+/**
+* Generates a textual summary for LLM consumption
+* 
+* @param {Object} summary - The structured summary object
+* @returns {string} A concise text description of changes
+*/
+DiffEngine.prototype.generateLLMTextSummary = function(summary) {
+ const parts = [];
+ 
+ // Project-level changes
+ if (summary.stats.tracksAdded > 0 || summary.stats.tracksRemoved > 0) {
+     parts.push(`Overall project changes: ${summary.stats.tracksAdded} tracks added, ${summary.stats.tracksRemoved} tracks removed, ${summary.stats.tracksModified} tracks modified.`);
+     
+     if (summary.projectChanges.length > 0) {
+         parts.push(summary.projectChanges.join('\n'));
+     }
+ }
+ 
+ // Track-specific changes
+ const trackNames = Object.keys(summary.trackSummaries);
+ if (trackNames.length > 0) {
+     parts.push(`\nDetailed changes by track:`);
+     
+     trackNames.forEach(trackName => {
+         const trackSummary = summary.trackSummaries[trackName];
+         
+         // Add track header with counts
+         const changeTypes = [];
+         if (trackSummary.noteChanges > 0) changeTypes.push(`${trackSummary.noteChanges} note changes`);
+         if (trackSummary.velocityChanges > 0) changeTypes.push(`${trackSummary.velocityChanges} velocity changes`);
+         if (trackSummary.parameterChanges > 0) changeTypes.push(`${trackSummary.parameterChanges} parameter changes`);
+         if (trackSummary.loopChanges > 0) changeTypes.push(`${trackSummary.loopChanges} loop changes`);
+         if (trackSummary.audioChanges > 0) changeTypes.push(`${trackSummary.audioChanges} audio changes`);
+         
+         parts.push(`\nTrack: "${trackName}" (${changeTypes.join(", ")})`);
+         
+         // Add significant changes
+         if (trackSummary.significantChanges.length > 0) {
+             // Limit to 5 most significant changes per track to avoid excessive length
+             const limitedChanges = trackSummary.significantChanges.slice(0, 5);
+             
+             if (trackSummary.significantChanges.length > 5) {
+                 limitedChanges.push(`...and ${trackSummary.significantChanges.length - 5} more changes`);
+             }
+             
+             parts.push(limitedChanges.map(change => `  - ${change}`).join('\n'));
+         }
+     });
+ }
+ 
+ // Final stats
+ parts.push(`\nTotal changes: ${summary.stats.totalChanges}`);
+ 
+ return parts.join('\n');
+};
 
 // Additional comparators can be registered here or imported from separate files
 // diffEngine.registerTrackComparator(require('./comparators/effectsComparator'));
 
 /**
- * Create a detailed diff between project versions using the diff engine
- * @param {Object} oldVersion - Previous version of the project
- * @param {Object} newVersion - Current version of the project
- * @returns {Object} Detailed diff object
- */
-function getDetailedProjectDiff(oldVersion, newVersion) {
-    return diffEngine.createDetailedDiff(oldVersion, newVersion);
+* Create a detailed diff between project versions using the diff engine
+* @param {Object} oldVersion - Previous version of the project
+* @param {Object} newVersion - Current version of the project
+* @returns {Object} Detailed diff object
+*/
+function getDetailedProjectDiff(oldVersion, newVersion, includeLLMSummary = true) {
+ const detailedDiff = diffEngine.createDetailedDiff(oldVersion, newVersion);
+   
+ // Add LLM-friendly summary if requested
+ if (includeLLMSummary) {
+     detailedDiff.llmSummary = diffEngine.generateLLMSummary(detailedDiff);
+ }
+ 
+ return detailedDiff;
 }
 
 module.exports = {

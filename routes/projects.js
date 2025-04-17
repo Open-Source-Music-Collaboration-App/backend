@@ -2,8 +2,12 @@ const express = require("express");
 const projectsRouter = express.Router();
 const supabase = require('../services/supabase');
 const { createAbletonRepo } = require("../services/git");
-const { REPOSITORY_PATH } = require("../config/init");
+const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
 const fs = require("fs");
+const multer = require('multer'); // Import multer
+const path = require('path');
+const { handlePreviewDiff } = require('../controllers/previewController');
+
 
 // Create a new project
 projectsRouter.post("/", async (req, res) => {
@@ -59,6 +63,26 @@ projectsRouter.get("/", async (req, res) => {
   }
 });
 
+// Configure multer for temporary preview uploads in a specific subfolder
+const previewStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+      const previewDir = path.join(UPLOAD_PATH, 'previews');
+      if (!fs.existsSync(previewDir)) {
+          fs.mkdirSync(previewDir, { recursive: true });
+      }
+      cb(null, previewDir);
+  },
+  filename: function (req, file, cb) {
+      // Use a unique name to avoid conflicts
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const previewUpload = multer({ storage: previewStorage });
+
+projectsRouter.post('/preview-diff/:projectId', previewUpload.single('alsFile'), handlePreviewDiff);
+
+
 // Get a project by ID
 projectsRouter.get("/:projectId", async (req, res) => {
   const projectId = req.params.projectId;
@@ -91,5 +115,7 @@ projectsRouter.get("/:projectId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch project", details: err.message });
   }
 });
+
+
 
 module.exports = projectsRouter;
