@@ -26,6 +26,7 @@
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.5",
     "simple-git": "^3.27.0",
+    "simplegit": "^1.0.2",
     "sqlite3": "^5.1.7",
     "supabase": "^2.15.8"
   },

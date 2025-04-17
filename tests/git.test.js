@@ -1,5 +1,5 @@
 const { createGitHandler, createAbletonRepo } = require('../services/git');
-const { REPOSITORY_PATH } = require("../config/init");
+const { REPOSITORY_PATH, ARCHIVE_PATH } = require("../config/init");
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('path');
@@ -21,6 +21,7 @@ beforeAll(async () => {
     // Ensure test directory exists
     if (!fs.existsSync(REPOSITORY_PATH)) {
         fs.mkdirSync(REPOSITORY_PATH, { recursive: true });
+
     }
 
     await clearDirectory();
@@ -284,3 +285,72 @@ afterAll(async () => {
     await fsp.rm(REPOSITORY_PATH, { recursive: true });
     console.log('completed afterAll');
 })
+
+// Test getLatestCommitHash()
+test('getLatestCommitHash returns the most recent commit hash', async () => {
+    const songId = 'testSong';
+    const repoPath = path.join(REPOSITORY_PATH, songId);
+
+    await fsp.mkdir(repoPath, { recursive: true });
+    await fsp.writeFile(path.join(repoPath, 'file.txt'), 'test content');
+
+    const gitHandler = await createGitHandler(repoPath);
+    await gitHandler.commitAbletonUpdate("11111111", "Test commit");
+
+    const hash = await gitHandler.getLatestCommitHash();
+
+    expect(hash).not.toBe("-1");
+    expect(typeof hash).toBe("string");
+    expect(hash.length).toBeGreaterThan(0);
+});
+
+  
+  // Test createArchive()
+  test('createArchive generates correct .zip file', async () => {
+    const songId = 'testSong';
+    const repoPath = path.join(REPOSITORY_PATH, songId);
+    const archiveName = `${songId}.zip`;
+    const archivePath = path.join(ARCHIVE_PATH, archiveName);
+
+    await fsp.mkdir(repoPath, { recursive: true });
+    await fsp.writeFile(path.join(repoPath, 'file.txt'), 'test content');
+
+    const gitHandler = await createGitHandler(repoPath);
+    await gitHandler.commitAbletonUpdate("11111111", "Archive commit");
+
+    const hash = await gitHandler.getLatestCommitHash();
+    const zipPath = await gitHandler.createArchive(hash);
+
+    const stats = await fsp.stat(zipPath);
+    expect(stats.isFile()).toBe(true);
+    expect(stats.size).toBeGreaterThan(0);
+});
+
+// Test createGitHandler
+test('createGitHandler initializes on non-repo dir with files', async () => {
+    const songId = 'initWithFiles';
+    const repoPath = path.join(REPOSITORY_PATH, songId);
+
+    await fsp.mkdir(repoPath, { recursive: true });
+    await fsp.writeFile(path.join(repoPath, 'dummy.txt'), 'dummy');
+
+    const gitHandler = await createGitHandler(repoPath);
+    const git = simpleGit(repoPath);
+    const isRepo = await git.checkIsRepo("root");
+
+    expect(isRepo).toBeTruthy();
+});
+
+// Test getLatestCommitHash for empty repo
+test('getLatestCommitHash returns -1 for empty repo', async () => {
+    const songId = 'emptyRepo';
+    const repoPath = path.join(REPOSITORY_PATH, songId);
+
+    await fsp.mkdir(repoPath, { recursive: true });
+    const gitHandler = await createGitHandler(repoPath);
+    
+    const hash = await gitHandler.getLatestCommitHash();
+    expect(hash).toBe("-1");
+});
+
+
