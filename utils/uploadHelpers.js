@@ -1,7 +1,7 @@
 const busboy = require("busboy");
 const fs = require("fs");
 const path = require("path");
-const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
+const { UPLOAD_PATH, REPOSITORY_PATH, ABLETON_PARSER_PATH } = require("../config/init");
 const { createGitHandler } = require("../services/git");
 const { compareTrackChanges, getDetailedProjectDiff } = require("../utils/trackComparison");
 const { exec } = require("child_process");
@@ -61,12 +61,7 @@ const createConfiguredBusBoy = (req, res) => {
       })
     }
 
-    return res.status(200).json({
-      message: "Succesfully passed metadata",
-    });
-
     //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
-    const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
     const alsFilePath = path.join(UPLOAD_PATH);
     const repoPath = path.join(REPOSITORY_PATH, projectId);
     try {
@@ -75,7 +70,7 @@ const createConfiguredBusBoy = (req, res) => {
       const alsFileSrcPath = path.join(UPLOAD_PATH, alsFileName);
       const alsFileDestPath = path.join(repoPath, alsFileName);
 
-      const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
+      const command = `python3 ${ABLETON_PARSER_PATH} ${alsFilePath} ${repoPath}`;
 
       //before executing the command, store the current ableton_project.json
       const previousJsonPath = path.join(repoPath, 'ableton_project.json');
