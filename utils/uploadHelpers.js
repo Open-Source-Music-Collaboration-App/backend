@@ -6,6 +6,7 @@ const { createGitHandler } = require("../services/git");
 const { compareTrackChanges, getDetailedProjectDiff } = require("../utils/trackComparison");
 const { exec } = require("child_process");
 const util = require("util");
+const Action = require("../constants/action");
 const execPromise = util.promisify(exec);
 
 /**
@@ -50,14 +51,19 @@ const createConfiguredBusBoy = (req, res) => {
     if (!files.length) {
       return res.status(400).json({ error: "No files uploaded" });
     }
-    let { userId, projectId, commitMessage } = jsonData;
-    if (!userId || !projectId) {
+    let { userId, projectId, commitMessage, actionType } = jsonData;
+    if (!userId || !projectId || !Object.values(Action).includes(actionType)) {
       return res.status(400).json({
         error: "Missing required metadata:",
-        userId: userId,
-        projectId: projectId
+        userId: userId ?? "undefined",
+        projectId: projectId ?? "undefined",
+        actionType: actionType ?? "undefined",
       })
     }
+
+    return res.status(200).json({
+      message: "Succesfully passed metadata",
+    });
 
     //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
     const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
