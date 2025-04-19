@@ -62,6 +62,27 @@ const createConfiguredBusBoy = (req, res) => {
       })
     }
 
+    const { data, error } = await supabase
+      .from('User')
+      .select("*")
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      return res.status(500).json({
+        message: "Error fetching user from Supabase",
+        error,
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const username = data['name']
+
     //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
     const alsFilePath = path.join(UPLOAD_PATH);
     let collabId;
@@ -81,6 +102,7 @@ const createConfiguredBusBoy = (req, res) => {
           },
         ])
         .select()
+        .single();
       if (error) {
         return res.status(500).json({
           message: "Error creating collaboration in Supabase",
@@ -89,7 +111,7 @@ const createConfiguredBusBoy = (req, res) => {
       }
 
       console.log(data);
-      collabId = data[0].id;
+      collabId = data.id;
 
       repoPath = path.join(COLLABORATION_STORAGE_PATH, collabId.toString());
     }
@@ -170,7 +192,7 @@ const createConfiguredBusBoy = (req, res) => {
 
         // Make the commit
         const git = await createGitHandler(repoPath);
-        await git.commitAbletonUpdate(userId, commitMessage, trackChanges);
+        await git.commitAbletonUpdate(username, commitMessage, trackChanges);
 
         res.status(201).json({
           message: "Files uploaded successfully",
