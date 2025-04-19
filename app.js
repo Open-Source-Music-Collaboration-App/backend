@@ -12,6 +12,7 @@ const adminRouter = require("./routes/admin");
 const profileRouter = require("./routes/profile");
 const aiRouter = require("./routes/ai");
 const { init } = require("./config/init");
+const collaborationRouter = require("./routes/collaboration");
 
 init();
 const app = express();
@@ -68,6 +69,8 @@ app.get("/api/me", (req, res) => {
 });
 
 app.use("/api/projects", projectsRouter);
+
+app.use("/api/collabs", collaborationRouter)
 
 app.use("/api/upload", uploadRouter);
 
