@@ -6,7 +6,7 @@ const { createGitHandler } = require("../services/git");
 const { compareTrackChanges, getDetailedProjectDiff } = require("../utils/trackComparison");
 const { exec } = require("child_process");
 const util = require("util");
-const Action = require("../constants/action");
+const { UploadAction} = require("../constants/action");
 const supabase = require("../services/supabase");
 const execPromise = util.promisify(exec);
 
@@ -53,7 +53,7 @@ const createConfiguredBusBoy = (req, res) => {
       return res.status(400).json({ error: "No files uploaded" });
     }
     let { userId, projectId, commitMessage, actionType, title } = jsonData;
-    if (!userId || !projectId || !Object.values(Action).includes(actionType)) {
+    if (!userId || !projectId || !Object.values(UploadAction).includes(actionType)) {
       return res.status(400).json({
         error: "Missing required metadata:",
         userId: userId ?? "undefined",
@@ -87,7 +87,7 @@ const createConfiguredBusBoy = (req, res) => {
     const alsFilePath = path.join(UPLOAD_PATH);
     let collabId;
     let repoPath;
-    if (actionType == Action.COMMIT) {
+    if (actionType == UploadAction.COMMIT) {
       repoPath = path.join(REPOSITORY_PATH, projectId)
     } else {
 
@@ -153,7 +153,7 @@ const createConfiguredBusBoy = (req, res) => {
 
       // Copy the ALS file to the repository folder regardless of changes
       fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
-      if (actionType == Action.COLLAB_REQ) {
+      if (actionType == UploadAction.COLLAB_REQ) {
         return res.status(201).json({
           message: "Collaboration request created successfully",
           collaborationId: collabId
