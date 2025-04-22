@@ -1,11 +1,13 @@
 const busboy = require("busboy");
 const fs = require("fs");
 const path = require("path");
-const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
+const { UPLOAD_PATH, REPOSITORY_PATH, ABLETON_PARSER_PATH, COLLABORATION_STORAGE_PATH } = require("../config/init");
 const { createGitHandler } = require("../services/git");
 const { compareTrackChanges, getDetailedProjectDiff } = require("../utils/trackComparison");
 const { exec } = require("child_process");
 const util = require("util");
+const { UploadAction} = require("../constants/action");
+const supabase = require("../services/supabase");
 const execPromise = util.promisify(exec);
 
 /**
@@ -50,26 +52,76 @@ const createConfiguredBusBoy = (req, res) => {
     if (!files.length) {
       return res.status(400).json({ error: "No files uploaded" });
     }
-    let { userId, projectId, commitMessage } = jsonData;
-    if (!userId || !projectId) {
+    let { userId, projectId, commitMessage, actionType, title } = jsonData;
+    if (!userId || !projectId || !Object.values(UploadAction).includes(actionType)) {
       return res.status(400).json({
         error: "Missing required metadata:",
-        userId: userId,
-        projectId: projectId
+        userId: userId ?? "undefined",
+        projectId: projectId ?? "undefined",
+        actionType: actionType ?? "undefined",
       })
     }
 
+    const { data, error } = await supabase
+      .from('User')
+      .select("*")
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      return res.status(500).json({
+        message: "Error fetching user from Supabase",
+        error,
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const username = data['name']
+
     //exec parseAbleton.py ..uploads/<proj>.als ../utils/repo/repository/userId/projectId
-    const pythonScriptPath = path.join(__dirname, "../utils/parseAbleton.py");
     const alsFilePath = path.join(UPLOAD_PATH);
-    const repoPath = path.join(REPOSITORY_PATH, projectId);
+    let collabId;
+    let repoPath;
+    if (actionType == UploadAction.COMMIT) {
+      repoPath = path.join(REPOSITORY_PATH, projectId)
+    } else {
+
+      const { data, error } = await supabase
+        .from('Collab')
+        .insert([
+          {
+            project_id: projectId,
+            author_id: userId,
+            title: title ?? `Collaboration request from ${userId}`,
+            description: commitMessage
+          },
+        ])
+        .select()
+        .single();
+      if (error) {
+        return res.status(500).json({
+          message: "Error creating collaboration in Supabase",
+          error,
+        });
+      }
+
+      console.log(data);
+      collabId = data.id;
+
+      repoPath = path.join(COLLABORATION_STORAGE_PATH, collabId.toString());
+    }
     try {
       // copy the als file to the repo path it ends with .als
       const alsFileName = files.find(file => file.filename.endsWith('.als')).filename;
       const alsFileSrcPath = path.join(UPLOAD_PATH, alsFileName);
       const alsFileDestPath = path.join(repoPath, alsFileName);
 
-      const command = `python3 ${pythonScriptPath} ${alsFilePath} ${repoPath}`;
+      const command = `python3 ${ABLETON_PARSER_PATH} ${alsFilePath} ${repoPath}`;
 
       //before executing the command, store the current ableton_project.json
       const previousJsonPath = path.join(repoPath, 'ableton_project.json');
@@ -94,19 +146,23 @@ const createConfiguredBusBoy = (req, res) => {
 
       console.log("Ableton project parsed successfully");
 
-      const git = await createGitHandler(repoPath);
 
       // Get current ableton_project.json
       const currentJsonPath = path.join(repoPath, 'ableton_project.json');
       const currentJson = fs.readFileSync(currentJsonPath, 'utf8');
-      
+
       // Copy the ALS file to the repository folder regardless of changes
       fs.copyFileSync(alsFileSrcPath, alsFileDestPath);
-      
+      if (actionType == UploadAction.COLLAB_REQ) {
+        return res.status(201).json({
+          message: "Collaboration request created successfully",
+          collaborationId: collabId
+        });
+      }
       // Compare versions and detect changes
       let trackChanges = null;
       let isFirstCommit = false;
-      
+
       if (previousJson) {
         trackChanges = compareTrackChanges(previousJson, currentJson);
       } else {
@@ -116,10 +172,10 @@ const createConfiguredBusBoy = (req, res) => {
       }
 
       // Proceed with commit if there are changes OR if this is the first commit
-      const hasChanges = trackChanges && 
-        (trackChanges.added.length > 0 || 
-        trackChanges.modified.length > 0 || 
-        trackChanges.removed.length > 0);
+      const hasChanges = trackChanges &&
+        (trackChanges.added.length > 0 ||
+          trackChanges.modified.length > 0 ||
+          trackChanges.removed.length > 0);
 
       if (hasChanges || isFirstCommit) {
         // If changes detected, get detailed project diff
@@ -127,16 +183,17 @@ const createConfiguredBusBoy = (req, res) => {
         if (previousJson) {
           detailedDiff = getDetailedProjectDiff(previousJson, currentJson);
           console.log("Detailed project diff:", detailedDiff);
-          
+
           //create a file called diff.json in the repoPath
           const diffFilePath = path.join(repoPath, 'diff.json');
           fs.writeFileSync(diffFilePath, JSON.stringify(detailedDiff, null, 2));
           console.log("Detailed diff saved to:", diffFilePath);
         }
-        
+
         // Make the commit
-        await git.commitAbletonUpdate(userId, commitMessage, trackChanges);
-        
+        const git = await createGitHandler(repoPath);
+        await git.commitAbletonUpdate(username, commitMessage, trackChanges);
+
         res.status(201).json({
           message: "Files uploaded successfully",
           files,
