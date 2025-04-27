@@ -18,6 +18,9 @@ uploadRouter.post("/", (req, res) => {
   try {
     const files = fs.readdirSync(UPLOAD_PATH);
     for (const file of files) {
+      // Skip directories named "previews"
+      if (file === "previews") continue;
+
       fs.unlinkSync(path.join(UPLOAD_PATH, file));
     }
     console.log("Cleaned up upload directory");
