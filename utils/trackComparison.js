@@ -281,6 +281,8 @@ diffEngine.registerTrackComparator({
                   trackName,
                   note: oldNote.pitch,
                   beat: oldNote.beat,
+                  duration: oldNote.duration,
+                  velocity: oldNote.velocity,
                   description: `Note ${oldNote.pitch} at beat ${oldNote.beat.toFixed(2)} was removed from track '${trackName}'`
               });
           }
@@ -302,6 +304,8 @@ diffEngine.registerTrackComparator({
                   trackName,
                   note: newNote.pitch,
                   beat: newNote.beat,
+                  duration: newNote.duration,
+                  velocity: newNote.velocity,
                   description: `Note ${newNote.pitch} at beat ${newNote.beat.toFixed(2)} was added to track '${trackName}'`
               });
           }
@@ -355,6 +359,8 @@ diffEngine.registerTrackComparator({
                                     note: oldNote.key.Value,
                                     from: vel1,
                                     to: vel2,
+                                    beat: parseFloat(oldOcc.start),
+                                    duration: parseFloat(oldOcc.duration),
                                     description: `Note ${oldNote.key.Value} velocity changed from ${vel1.toFixed(0)} to ${vel2.toFixed(0)} in track '${trackName}'`
                                 });
                             }
