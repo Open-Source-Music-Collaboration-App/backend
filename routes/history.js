@@ -45,7 +45,7 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
   try {
     const { userId, projectId } = req.params;
 
-    console.log("Getting all commits");
+    // console.log("Getting all commits");
     
     // Input validation
     if (!userId || !projectId) {
@@ -55,13 +55,13 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
     const repoPath = path.join(REPOSITORY_PATH, projectId);
     const git = await createGitHandler(repoPath);
 
-    console.log("!!!Created git handler");
+    // console.log("!!!Created git handler");
     if( await git.getLatestCommitHash() === "-1"){
       console.log("Repo is empty");
       return res.status(204).json({ error: "Repository is empty" });
     }
 
-    console.log(git.getLatestCommitHash());
+    // console.log(git.getLatestCommitHash());
     
     const history = await git.getAbletonVersionHistory();
     
@@ -106,7 +106,7 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
 historyRouter.get('/latest/:userId/:projectId', async (req, res) => {
   console.log("GETTING LATEST COMMIT");
   const { userId, projectId } = req.params;
-  console.log(userId, projectId);
+  // console.log(userId, projectId);
   
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
 
@@ -146,7 +146,7 @@ historyRouter.get('/diff/:userId/:projectId/:commitHash', async (req, res) => {
     if (!diffJSON) {
       return res.status(404).json({ error: 'Diff data not found for the specified commit' });
     }
-    console.log(diffJSON);
+    // console.log(diffJSON);
     res.status(200).json(diffJSON);
   } catch (err) {
     console.error('Error fetching diff data:', err);
@@ -159,7 +159,7 @@ historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
 
   const archivePath = await git.createArchive(commitHash);
-  console.log("HERE");
+  // console.log("HERE");
   res.sendFile(archivePath);
 })
 

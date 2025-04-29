@@ -112,10 +112,12 @@ def parse_tracks(root):
             end = event["CurrentEnd"]["Value"]
             loopStart = event["Loop"]["LoopStart"]["Value"]
             loopEnd = event["Loop"]["LoopEnd"]["Value"]
-            
-            eventRange = int(end) - int(start)
-            loopRange = int(loopEnd) - int(loopStart)
-            repeats = eventRange // loopRange
+
+            # Convert to float instead of int
+            eventRange = float(end) - float(start)
+            loopRange = float(loopEnd) - float(loopStart)
+            # Calculate repeats using float division and then convert to int for iteration
+            repeats = int(eventRange // loopRange)
             lastLoopRange = eventRange % loopRange
             
             

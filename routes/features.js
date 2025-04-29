@@ -20,7 +20,7 @@ featuresRouter.post("/", async (req, res) => {
       updated_at = new Date(),
     } = req.body;
 
-    console.log("Received request body:", req.body);
+    // console.log("Received request body:", req.body);
 
     if (!author_id) {
       return res.status(400).json({ error: "Missing required user_id" });

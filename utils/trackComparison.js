@@ -143,14 +143,42 @@ class DiffEngine {
         }
         
         // Add "added track" entries
-        trackChanges.added.forEach(track => {
-            result.trackAddRemove.push({
-                type: 'added',
-                trackName: track.name,
-                trackType: track.type,
-                description: `Added ${track.type} track '${track.name}'`
+    trackChanges.added.forEach(track => {
+        result.trackAddRemove.push({
+            type: 'added',
+            trackName: track.name,
+            trackType: track.type,
+            description: `Added ${track.type} track '${track.name}'`
+        });
+        result.summary.totalChanges++;
+        
+        // NEW CODE: Process added tracks with track-level comparators
+        // Find the full track details in the new version
+        const newTrack = newVersion.tracks.find(t => t.id === track.id);
+          if (newTrack) {
+            // Create an empty track as the "old" version for comparison
+            const emptyTrack = {
+                id: track.id,
+                name: track.name,
+                type: track.type,
+                events: []
+            };
+            
+            // Apply track-level comparators to process all notes/events in new tracks
+            this.trackLevelComparators.forEach(comparator => {
+                const changes = comparator.compare(emptyTrack, newTrack, track.name);
+                
+                if (changes && changes.length > 0) {
+                    result[comparator.type].push(...changes);
+                    result.summary.totalChanges += changes.length;
+                    
+                    // Add to changed tracks if not already there
+                    if (!result.summary.changedTracks.includes(track.name)) {
+                        result.summary.changedTracks.push(track.name);
+                    }
+                }
             });
-            result.summary.totalChanges++;
+          }
         });
         
         // Add "removed track" entries
@@ -206,64 +234,100 @@ const diffEngine = new DiffEngine();
 
 // Define and register track-level comparators
 // ==================================================
-
-/**
- * MIDI Note Comparator - Detects changes in MIDI note positions and durations
- */
-/**
- * MIDI Note Comparator - Simplified to just track added and removed notes
- */
 diffEngine.registerTrackComparator({
   type: 'noteChanges',
   compare: (oldTrack, newTrack, trackName) => {
       const changes = [];
       
-      // Skip if either track doesn't have events or notes
-      if (!oldTrack.events || !newTrack.events) return changes;
+      // Skip if either track doesn't have events
+      if (!oldTrack.events && !newTrack.events) return changes;
       
       // Collect all notes from old track with their positions
       const oldNotes = [];
-      oldTrack.events.forEach(oldEvent => {
-          if (!oldEvent.notes) return;
-          
-          const eventStart = parseFloat(oldEvent.start);
-          oldEvent.notes.forEach(note => {
-              note.occurences.forEach(occ => {
-                  if (occ.enabled === "false") return;
+      if (oldTrack.events) {
+          oldTrack.events.forEach(oldEvent => {
+              if (!oldEvent.notes) return;
+              
+              const eventStart = parseFloat(oldEvent.start);
+              oldEvent.notes.forEach(note => {
+                  if (!note.occurences) return; // Skip if no occurrences
                   
-                  const globalBeat = eventStart + parseFloat(occ.start);
-                  oldNotes.push({
-                      eventStart,
-                      beat: globalBeat,
-                      pitch: note.key.Value,
-                      duration: parseFloat(occ.duration),
-                      velocity: parseFloat(occ.velocity)
+                  note.occurences.forEach(occ => {
+                      if (occ.enabled === "false") return;
+                      
+                      const globalBeat = eventStart + parseFloat(occ.start);
+                      oldNotes.push({
+                          eventStart,
+                          beat: globalBeat,
+                          pitch: note.key.Value,
+                          duration: parseFloat(occ.duration),
+                          velocity: parseFloat(occ.velocity)
+                      });
                   });
               });
           });
-      });
+      }
       
       // Collect all notes from new track with their positions
+
+      // console.log(trackName, newTrack.events);
       const newNotes = [];
-      newTrack.events.forEach(newEvent => {
-          if (!newEvent.notes) return;
+      if (newTrack.events) {
           
-          const eventStart = parseFloat(newEvent.start);
-          newEvent.notes.forEach(note => {
-              note.occurences.forEach(occ => {
-                  if (occ.enabled === "false") return;
+          newTrack.events.forEach(newEvent => {
+              if (!newEvent.notes) return;
+              
+              const eventStart = parseFloat(newEvent.start);
+              newEvent.notes.forEach(note => {
+                  if (!note.occurences) return; // Skip if no occurrences
                   
-                  const globalBeat = eventStart + parseFloat(occ.start);
-                  newNotes.push({
-                      eventStart,
-                      beat: globalBeat,
-                      pitch: note.key.Value,
-                      duration: parseFloat(occ.duration),
-                      velocity: parseFloat(occ.velocity)
+                  note.occurences.forEach(occ => {
+                      if (occ.enabled === "false") return;
+                      
+                      const globalBeat = eventStart + parseFloat(occ.start);
+                      newNotes.push({
+                          eventStart,
+                          beat: globalBeat,
+                          pitch: note.key.Value,
+                          duration: parseFloat(occ.duration),
+                          velocity: parseFloat(occ.velocity)
+                      });
                   });
               });
           });
-      });
+      }
+      
+      // Special handling for added tracks - consider all notes as added
+      if (!oldTrack.events && newTrack.events) {
+          newNotes.forEach(newNote => {
+              changes.push({
+                  type: 'noteAdded',
+                  trackName,
+                  note: newNote.pitch,
+                  beat: newNote.beat,
+                  duration: newNote.duration,
+                  velocity: newNote.velocity,
+                  description: `Note ${newNote.pitch} at beat ${newNote.beat.toFixed(2)} was added to new track '${trackName}'`
+              });
+          });
+          return changes;
+      }
+      
+      // Special handling for removed tracks - consider all notes as removed
+      if (oldTrack.events && !newTrack.events) {
+          oldNotes.forEach(oldNote => {
+              changes.push({
+                  type: 'noteRemoved',
+                  trackName,
+                  note: oldNote.pitch,
+                  beat: oldNote.beat,
+                  duration: oldNote.duration,
+                  velocity: oldNote.velocity,
+                  description: `Note ${oldNote.pitch} at beat ${oldNote.beat.toFixed(2)} was removed with track '${trackName}'`
+              });
+          });
+          return changes;
+      }
       
       // Find removed notes (in old but not in new)
       oldNotes.forEach(oldNote => {
@@ -494,16 +558,16 @@ diffEngine.registerTrackComparator({
             return changes;
         }
         
-        // Compare main audio file
-        if (oldTrack.audio_file !== newTrack.audio_file) {
-            changes.push({
-                type: 'audioSource',
-                trackName,
-                from: oldTrack.audio_file || 'none',
-                to: newTrack.audio_file || 'none',
-                description: `Audio source changed for track '${trackName}'`
-            });
-        }
+        // // Compare main audio file
+        // if (oldTrack.audio_file !== newTrack.audio_file) {
+        //     changes.push({
+        //         type: 'audioSource',
+        //         trackName,
+        //         from: oldTrack.audio_file || 'none',
+        //         to: newTrack.audio_file || 'none',
+        //         description: `Audio source changed for track '${trackName}'`
+        //     });
+        // }
         
         // Compare audio clips within events
         if (oldTrack.events && newTrack.events) {

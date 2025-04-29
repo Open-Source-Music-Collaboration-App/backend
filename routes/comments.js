@@ -11,7 +11,7 @@ commentsRouter.post("/", async (req, res) => {
       message,
     } = req.body;
 
-    console.log("Received request body:", req.body);
+    // console.log("Received request body:", req.body);
 
     if (!feature_id || !author_id || !message) {
       return res.status(400).json({ 

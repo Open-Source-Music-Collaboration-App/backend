@@ -111,7 +111,7 @@ async function createGitHandler(basedir) {
             console.log("!!!Getting log");
             const log = await git.log();
             // console.log(log); 
-            console.log(log.latest.hash);
+            // console.log(log.latest.hash);
             return log.latest.hash;
         }
         catch (e) {
