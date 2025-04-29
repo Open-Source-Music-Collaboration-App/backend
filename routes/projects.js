@@ -2,11 +2,13 @@ const express = require("express");
 const projectsRouter = express.Router();
 const supabase = require('../services/supabase');
 const { createAbletonRepo } = require("../services/git");
-const { UPLOAD_PATH, REPOSITORY_PATH } = require("../config/init");
+const { UPLOAD_PATH, REPOSITORY_PATH, COLLABORATION_STORAGE_PATH } = require("../config/init");
 const fs = require("fs");
 const multer = require('multer'); // Import multer
 const path = require('path');
 const { handlePreviewDiff } = require('../controllers/previewController');
+const { compareTrackChanges } = require("../utils/trackComparison");
+
 
 
 // Create a new project
@@ -115,6 +117,46 @@ projectsRouter.get("/:projectId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch project", details: err.message });
   }
 });
+
+// Get list of collab request associated with project
+projectsRouter.get("/:projectId/collabs", async (req, res) => {
+  const project_id = req.params.projectId;
+  const { data, error } = await supabase
+    .from('Collab')
+    .select('id, User (name), title, description, status, created_at')
+    .eq('project_id', project_id);
+  
+  if (error) {
+    return res.status(500).json({
+      message: "Failed to fetch collabs",
+      error
+    })
+  }
+
+  const currentJsonPath = path.join(REPOSITORY_PATH, project_id, 'ableton_project.json');
+  let currentJson = null;
+  if (fs.existsSync(currentJsonPath)) {
+    currentJson = fs.readFileSync(currentJsonPath, 'utf8');
+  }
+  const collab_reqs = data.map(collab_req => {
+    const { id } = collab_req;
+    const collabJsonPath = path.join(COLLABORATION_STORAGE_PATH, id, 'ableton_project.json');
+    
+    let collabJson = null;
+    if (fs.existsSync(collabJsonPath)) {
+      collabJson = fs.readFileSync(collabJsonPath, 'utf8');
+    }
+    
+    trackChanges = compareTrackChanges(currentJson, collabJson);
+
+    return {
+      ...collab_req,
+      trackChanges
+    }
+  })
+
+  return res.status(200).json(collab_reqs);
+})
 
 
 
