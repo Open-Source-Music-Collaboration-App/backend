@@ -30,7 +30,7 @@ const init = () => {
   }
 
   if (!fs.existsSync(COLLABORATION_STORAGE_PATH)) {
-    fs.mkdirSync(FEATURE_PATH, { recursive: true });
+    fs.mkdirSync(COLLABORATION_STORAGE_PATH, { recursive: true });
   }
 };
 
