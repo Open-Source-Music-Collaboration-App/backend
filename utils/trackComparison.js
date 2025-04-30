@@ -12,7 +12,7 @@ function compareTrackChanges(oldJson, newJson) {
     const oldProject = typeof oldJson === 'string' ? JSON.parse(oldJson) : oldJson;
     const newProject = typeof newJson === 'string' ? JSON.parse(newJson) : newJson;
 
-    const oldTracks = oldProject.tracks || [];
+    const oldTracks = oldProject?.tracks || [];
     const newTracks = newProject.tracks || [];
 
     // Create lookup maps
