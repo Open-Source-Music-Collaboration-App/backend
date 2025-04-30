@@ -2,12 +2,13 @@ const express = require("express");
 const projectsRouter = express.Router();
 const supabase = require('../services/supabase');
 const { createAbletonRepo } = require("../services/git");
-const { UPLOAD_PATH, REPOSITORY_PATH, COLLABORATION_STORAGE_PATH } = require("../config/init");
+const { UPLOAD_PATH, REPOSITORY_PATH, COLLABORATION_STORAGE_PATH, ARCHIVE_PATH } = require("../config/init");
 const fs = require("fs");
 const multer = require('multer'); // Import multer
 const path = require('path');
 const { handlePreviewDiff } = require('../controllers/previewController');
 const { compareTrackChanges } = require("../utils/trackComparison");
+const archiver = require('archiver');
 
 
 
@@ -158,6 +159,72 @@ projectsRouter.get("/:projectId/collabs", async (req, res) => {
   return res.status(200).json(collab_reqs);
 })
 
+// Download endpoint for a single collab req
+projectsRouter.get("/:projectId/collabs/:collabId", async (req, res) => {
+  const { projectId: project_id, collabId: collab_id } = req.params;
+  console.log
+  console.log(project_id, collab_id);
+  const { data, error } = await supabase
+    .from('Collab')
+    .select('id, title, User (name)')
+    .eq('id', collab_id)
+    .eq('project_id', project_id)
+    .maybeSingle();
+  
 
+  if (error) {
+    return res.status(500).json({
+      message: "Failed to fetch collab:",
+      error
+    })
+  }
+  
+  if (!data) {
+    return res.status(400).json({
+      message: "No such collab req"
+    })
+  }
+
+  const { title, User: { name:user } } = data;
+
+  const collabDirPath = path.join(COLLABORATION_STORAGE_PATH, collab_id);
+  
+  if( !fs.existsSync(collabDirPath)){
+    console.log("Directory not found");
+    return res.status(500).json({ error: "Failed to find collab" });
+  }
+  const output = fs.createWriteStream(path.join(ARCHIVE_PATH, `${collab_id}.zip`));
+  const archive = archiver('zip', {
+    zlib: { level: 9 } // Sets the compression level
+  });
+  output.on('close', function() {
+    console.log('Archiver has been finalized and the output file descriptor has closed.');
+  });
+  archive.on('error', function(err) {
+    console.log('Archiver error:', err);
+    return res.status(500).json({ error: "Failed to create archive" });
+  });
+  archive.pipe(output);
+  archive.directory(collabDirPath, false);
+  archive.finalize();
+  // Send the archive
+  output.on('close', () => {
+    res.setHeader('Content-Type', 'application/zip');
+    res.download(path.join(ARCHIVE_PATH, `${collab_id}.zip`), filename = `${title}-${user}.zip`, (err) => {
+      if (err) {
+        console.error("Download error:", err);
+        return res.status(500).json({ error: "Failed to download archive" });
+      }
+      fs.unlink(path.join(ARCHIVE_PATH, `${collab_id}.zip`), (err) => {
+        if (err) {
+          console.error("Failed to delete archive:", err);
+        } else {
+          console.log("Archive deleted successfully");
+        }
+      })
+    })
+  });
+  
+})
 
 module.exports = projectsRouter;
