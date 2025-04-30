@@ -162,7 +162,6 @@ projectsRouter.get("/:projectId/collabs", async (req, res) => {
 // Download endpoint for a single collab req
 projectsRouter.get("/:projectId/collabs/:collabId", async (req, res) => {
   const { projectId: project_id, collabId: collab_id } = req.params;
-  console.log
   console.log(project_id, collab_id);
   const { data, error } = await supabase
     .from('Collab')
