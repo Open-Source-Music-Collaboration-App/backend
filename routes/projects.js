@@ -210,7 +210,7 @@ projectsRouter.get("/:projectId/collabs/:collabId", async (req, res) => {
   // Send the archive
   output.on('close', () => {
     res.setHeader('Content-Type', 'application/zip');
-    res.download(path.join(ARCHIVE_PATH, `${collab_id}.zip`), filename = `${title}-${user}.zip`, (err) => {
+    res.download(path.join(ARCHIVE_PATH, `${collab_id}.zip`), `${title}-${user}.zip`, (err) => {
       if (err) {
         console.error("Download error:", err);
         return res.status(500).json({ error: "Failed to download archive" });
