@@ -20,5 +20,3 @@ passport.deserializeUser((obj, done) => {
 });
 
 module.exports = passport
-
-// https://github.com/login/oauth/authorize?response_type=code&redirect_uri=http%3A%2F%2F10.140.254.31%2Fauth%2Fcallback%2Fgithub&scope=user%3Aemail&client_id=Ov23liUPI2uGt7qbZmJL
