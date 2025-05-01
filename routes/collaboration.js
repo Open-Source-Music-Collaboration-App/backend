@@ -100,7 +100,7 @@ collaborationRouter.post('/:collab_id', async (req, res) => {
                 error,
             })
         }
-
+        let trackChanges = null;
         if (oldJson) {
             const newJson = fs.readFileSync(newJsonPath, 'utf8');
             trackChanges = compareTrackChanges(oldJson, newJson);
