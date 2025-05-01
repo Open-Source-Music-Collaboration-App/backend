@@ -23,7 +23,8 @@ authRouter.get('/github/callback',
 
         //get request hostname
         // console.log(req.hostname);
-        res.redirect(`http://${req.hostname}:5173/dashboard`); // Redirect frontend after login
+        // In the GitHub callback route:
+        res.redirect('/dashboard');
     }
 );
 

@@ -20,7 +20,15 @@ const app = express();
 // Enable CORS to allow frontend requests
 app.use(
   cors({
-    origin: "http://localhost:5173", // Frontend URL
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.FRONTEND_URL 
+      : [
+          "http://localhost:5173",
+          `http://${require('os').hostname()}:5173`,
+          /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:5173$/,
+          /^http:\/\/172\.\d{1,3}\.\d{1,3}\.\d{1,3}:5173$/,
+          /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}:5173$/
+        ],
     credentials: true, // Allow cookies & authentication
   }),
 );
