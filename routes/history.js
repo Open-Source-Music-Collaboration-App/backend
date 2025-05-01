@@ -154,6 +154,45 @@ historyRouter.get('/diff/:userId/:projectId/:commitHash', async (req, res) => {
   }
 });
 
+historyRouter.get('/json/:userId/:projectId/latest', async (req, res) => {
+  const { userId, projectId } = req.params;
+  const repoPath = path.join(REPOSITORY_PATH, projectId);
+  const jsonPath = path.join(repoPath, 'ableton_project.json');
+  
+  try {
+    if (fs.existsSync(jsonPath)) {
+      const jsonData = fs.readFileSync(jsonPath, 'utf8');
+      res.json(JSON.parse(jsonData));
+    } else {
+      res.status(204).end();
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+historyRouter.get('/json/:userId/:projectId/:commitHash', async (req, res) => {
+  const { userId, projectId, commitHash } = req.params;
+  const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));
+
+  try {
+    // Get the content at the specified commit
+    const filePath = path.join('ableton_project.json')
+    const jsonContent = await git.getFileAtCommit(commitHash, filePath);
+    
+    if (!jsonContent) {
+      return res.status(404).json({ error: 'JSON file not found for the specified commit' });
+    }
+    
+    // Parse to ensure it's valid JSON before sending
+    const parsedJson = JSON.parse(jsonContent);
+    res.status(200).json(parsedJson);
+  } catch (err) {
+    console.error('Error fetching JSON file:', err);
+    res.status(500).json({ error: 'Failed to fetch JSON file', details: err.message });
+  }
+});
+
 historyRouter.get('/:userId/:projectId/:commitHash', async (req, res) => {
   const { userId, projectId, commitHash } = req.params;
   const git = await createGitHandler(path.join(REPOSITORY_PATH, projectId));

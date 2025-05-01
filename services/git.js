@@ -50,6 +50,25 @@ async function createGitHandler(basedir) {
         }
     }
 
+
+    /**
+     * Gets a specific file's content at a given commit
+     * @param {string} commitHash - The commit hash to get the file from
+     * @param {string} filePath - The path to the file within the repository
+     * @returns {Promise<string>} The file content
+     */
+    const getFileAtCommit = async (commitHash, filePath) => {
+      try {
+        // Use the repository-specific git instance, not gitBaseHandler
+        // And don't include workingDir in the path - Git expects paths relative to repo root
+        const result = await git.show([`${commitHash}:${filePath}`]);
+        return result;
+      } catch (error) {
+        console.error(`Error getting file ${filePath} at commit ${commitHash}:`, error);
+        return null;
+      }
+    }
+
     /**
      * Git add all files and makes a commit in the main branch
      * @param {*} user name of user making commit
@@ -221,7 +240,8 @@ async function createGitHandler(basedir) {
     await initIfNotRepo();
 
     return {
-        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash, restoreCommit, getDiffJSON
+        commitAbletonUpdate, getAbletonVersionHistory, createArchive, getLatestCommitHash, restoreCommit, getDiffJSON,
+        getFileAtCommit
     }
 }
 
