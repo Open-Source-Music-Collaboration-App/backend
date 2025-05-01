@@ -121,11 +121,17 @@ projectsRouter.get("/:projectId", async (req, res) => {
 
 // Get list of collab request associated with project
 projectsRouter.get("/:projectId/collabs", async (req, res) => {
+  const { createdBy } = req.query;
   const project_id = req.params.projectId;
-  const { data, error } = await supabase
+  const query =  supabase
     .from('Collab')
     .select('id, User (name), title, description, status, created_at')
     .eq('project_id', project_id);
+    
+  if (createdBy) {
+    query.eq('author_id', createdBy);
+  }
+  const { data, error } = await query
   
   if (error) {
     return res.status(500).json({
