@@ -53,10 +53,11 @@ async function createGitHandler(basedir) {
     /**
      * Git add all files and makes a commit in the main branch
      * @param {*} user name of user making commit
+     * @param {*} user_id id of user making commit
      * @param {*} commitMessage Message that will be committed
      * @returns {void}
      */
-    const commitAbletonUpdate = async (user, commitMessage, trackChanges = null) => {
+    const commitAbletonUpdate = async (user, user_id, commitMessage, trackChanges = null) => {
         try {
             console.log('Adding');
             await git.add('.')
@@ -69,8 +70,10 @@ async function createGitHandler(basedir) {
         try {
             // Store track changes in the commit message or in commit notes
             const message = trackChanges ?
-                `${commitMessage}\n\nTrack-Changes: ${JSON.stringify(trackChanges)}` :
-                commitMessage;
+                `${commitMessage}\n\nUser-ID: ${user_id}\n\nTrack-Changes: ${JSON.stringify(trackChanges)}` :
+                `${commitMessage}\n\nUser-ID: ${user_id}`;
+
+              
 
             console.log('Committing');
             await git.commit(message, { '--author': `${user} <>` });

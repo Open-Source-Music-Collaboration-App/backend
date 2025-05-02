@@ -64,12 +64,18 @@ historyRouter.get('/all/:userId/:projectId', async (req, res) => {
     // console.log(git.getLatestCommitHash());
     
     const history = await git.getAbletonVersionHistory();
+
+    // const message = trackChanges ?
+    //             `${commitMessage}\n\nUser-ID: ${user_id}\n\nTrack-Changes: ${JSON.stringify(trackChanges)}` :
+    //             commitMessage;
+
     
     // Extract track changes from commit messages
     const historyWithChanges = history.all.map(commit => {
       // Parse track changes from commit message
       const trackChangesMatch = commit.message.match(/Track-Changes: (.+)$/s);
       let trackChanges = null;
+
       
       if (trackChangesMatch && trackChangesMatch[1]) {
         try {

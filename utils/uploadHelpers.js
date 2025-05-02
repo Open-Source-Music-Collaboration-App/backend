@@ -192,7 +192,7 @@ const createConfiguredBusBoy = (req, res) => {
 
         // Make the commit
         const git = await createGitHandler(repoPath);
-        await git.commitAbletonUpdate(username, commitMessage, trackChanges);
+        await git.commitAbletonUpdate(username, userId, commitMessage, trackChanges);
 
         res.status(201).json({
           message: "Files uploaded successfully",
