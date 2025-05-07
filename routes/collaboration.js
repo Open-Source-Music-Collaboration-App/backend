@@ -41,7 +41,7 @@ collaborationRouter.post('/:collab_id', async (req, res) => {
     }
 
     const { project_id, description, author_id, User: { name: user } } = retrieveData;
-
+    console.log(description)
     const src = path.join(COLLABORATION_STORAGE_PATH, collabId.toString());
     const dest = path.join(REPOSITORY_PATH, project_id.toString());
     let files;
@@ -100,7 +100,7 @@ collaborationRouter.post('/:collab_id', async (req, res) => {
                 error,
             })
         }
-
+        let trackChanges = null;
         if (oldJson) {
             const newJson = fs.readFileSync(newJsonPath, 'utf8');
             trackChanges = compareTrackChanges(oldJson, newJson);
@@ -112,7 +112,7 @@ collaborationRouter.post('/:collab_id', async (req, res) => {
         // Create git handler
         const git = await createGitHandler(dest);
         // await gitHandler.
-        await git.commitAbletonUpdate(user, description, trackChanges)
+        await git.commitAbletonUpdate(user, author_id, description, trackChanges)
     }
 
 
