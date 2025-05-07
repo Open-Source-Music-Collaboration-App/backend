@@ -39,16 +39,32 @@ router.get("/:userId", isAuthenticated, async (req, res) => {
       .from("Feature")
       .select("*")
       .eq("author_id", userId);
+
+
+    //since every features contains a priority which is either high, medium, or low 
+    // we can use this to get the number of features by priority
+    let highCount = features.filter(f => f.priority === 'high').length;
+    let mediumCount = features.filter(f => f.priority === 'medium').length;
+    let lowCount = features.filter(f => f.priority === 'low').length;
+
+    features.byPriority = {
+      high: highCount,
+      medium: mediumCount,
+      low: lowCount
+    };
       
     if (featuresError) throw featuresError;
+
     
-    // Fetch user's collaborations
-    const { data: collabs, error: collabsError } = await supabase
-      .from("Collab")
-      .select("*")
-      .eq("author_id", userId);
+    // Fetch collaborations initiated by user
+    const { data: collabs, error: collabError } = await supabase
+        .from('Collab')
+        .select('*, Project (title)')
+        .eq('author_id', userId)
       
-    if (collabsError) throw collabsError;
+    // console.log("Collab data:", collabs);
+
+    if (collabError) throw collabError;
     
     // Fetch user's comments
     const { data: comments, error: commentsError } = await supabase
